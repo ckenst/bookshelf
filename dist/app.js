@@ -1,13 +1,14 @@
 (() => {
-  const { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, shelfBooks, shelfDimensions } = BookshelfModel;
+  const { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, shelfBooks, shelfDimensions, yearScrollTarget, formatBookDate } = BookshelfModel;
   const key = 'personal-bookshelf-v1';
   const $ = id => document.getElementById(id);
-  const labels = { reading: 'Reading', finishing: 'Nearly finished', finished: 'Finished', 'want-to-read': 'Want to read', unknown: 'Status unknown', unfinished: 'Not finished' };
+  const labels = { reading: 'Reading', finishing: 'Nearly finished', finished: 'Finished', 'want-to-read': 'Want to read', unknown: 'Unread', unread: 'Unread', unfinished: 'Not finished' };
   let books = mergeLibrary([]);
   let activeId;
+  let activeYear = 'all';
   let toastTimer;
   function notify(message) { $('toast').textContent = message; $('toast').classList.add('visible'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('visible'), 4000); }
-  try { const saved = localStorage.getItem(key); if (saved) books = mergeLibrary(parseLibrary(saved)); }
+  try { const saved = localStorage.getItem(key); if (saved) books = mergeLibrary(parseLibrary(saved)); localStorage.setItem(key, JSON.stringify(books)); }
   catch { notify('Saved library could not be loaded. The supplied library is shown.'); }
   function element(tag, className, text) { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; }
   function coverImage(b, className) {
@@ -17,11 +18,12 @@
     return image;
   }
   function dateLabel(value) {
-    return new Date(value + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return formatBookDate(value);
   }
   function historyText(book) {
     const lines = [];
     if (book.addedAt) lines.push('Purchased / added ' + dateLabel(book.addedAt));
+    if (book.finishedAt) lines.push('Finished ' + dateLabel(book.finishedAt));
     for (const event of book.listeningEvents || []) lines.push('Listening entry ' + dateLabel(event.date) + ' (' + labels[event.status].toLowerCase() + ')');
     return lines.join(' · ');
   }
@@ -31,15 +33,17 @@
     $('detail-subtitle').textContent = book.subtitle || '';
     $('detail-cover').replaceChildren(coverImage(book, 'detail-cover-image'));
     $('detail-history').textContent = historyText(book) || 'No purchase or listening dates supplied.';
-    $('art-note').textContent = 'Published cover shown above. Cover edition may differ from your digital edition. Spine artwork is a cover-based reconstruction; thickness is estimated' + (book.pages ? ' from a ' + book.pages + '-page print edition.' : ' using a standard size because the page count is unknown.');
+    $('art-note').textContent = 'Published cover shown above. Cover edition may differ from your digital edition. Spine artwork is reconstructed from the real cover, with readable labels on hover or keyboard focus; thickness is estimated' + (book.pages ? ' from a ' + book.pages + '-page print edition.' : ' using a standard size because the page count is unknown.');
     $('edit-status').value = book.status; $('edit-format').value = book.format; $('edit-notes').value = book.notes;
     const source = seedBooks.find(b => b.id === id)?.source;
     $('publisher-link').hidden = !source; if (source) $('publisher-link').href = source;
     $('book-dialog').showModal();
   }
   function render() {
-    const displayBooks = shelfBooks(books);
-    $('book-count').textContent = `${displayBooks.length} books`;
+    const allDisplayBooks = shelfBooks(books);
+    const displayBooks = allDisplayBooks;
+    $('book-count').textContent = `${allDisplayBooks.length} books`;
+    $('shelf-heading').textContent = activeYear === 'all' ? 'The collection' : activeYear === 'unknown' ? 'Purchase date unknown' : 'Added in ' + activeYear;
     $('spines').replaceChildren(); $('year-nav').replaceChildren();
     const groups = new Map();
     for (const b of [...displayBooks].sort((a, b) => (a.addedAt || '9999').localeCompare(b.addedAt || '9999'))) {
@@ -50,6 +54,7 @@
     for (const [year, groupBooks] of groups) {
       const group = element('section', 'year-group');
       group.setAttribute('aria-label', year);
+      group.dataset.year = year === 'Date unknown' ? 'unknown' : year;
       const bookRow = element('div', 'year-books');
       for (const b of groupBooks) {
         const spine = element('button', 'spine');
@@ -59,18 +64,41 @@
         spine.style.width = dims.width + 'px'; spine.style.height = dims.height + 'px';
         const texture = element('span', 'spine-art');
         texture.setAttribute('aria-hidden', 'true');
+        // Cover-derived spine artwork stays visible; crisp labels appear on hover or focus.
         texture.style.backgroundImage = `url('${b.spineAtlas}')`;
         texture.style.backgroundSize = `${b.spineCount * 100}% 100%`;
         texture.style.backgroundPosition = `${b.spineIndex / (b.spineCount - 1) * 100}% top`;
-        spine.append(texture);
+        const palettes = {
+          'vibe-coding':['#09150b','#c5ff92'], protocols:['#faf7ef','#008db8'],
+          kissinger:['#392116','#fff6e9'], titan:['#8da997','#13251a'],
+          'the-nvidia-way':['#0756a1','#ffffff'], breakneck:['#74796d','#ffffff'],
+          'the-comfort-crisis':['#fffefa','#171d1a'], 'engineering-management':['#426084','#f7c283'],
+          'the-goal':['#214f70','#ffffff'], 'elon-musk':['#0b1017','#ffffff'], wool:['#5b7a76','#ffffff'], shift:['#205f8b','#ffffff'], dust:['#aa631a','#fff5d7']
+        };
+        const [paper, ink] = palettes[b.id] || ['#f3efe7','#2b3029'];
+        spine.style.setProperty('--spine-paper', paper); spine.style.setProperty('--spine-ink', ink);
+        const copy = element('span', 'spine-copy');
+        copy.setAttribute('aria-hidden', 'true');
+        copy.append(element('span', 'spine-title' + (b.title.length > 30 ? ' long-title' : ''), b.title), element('span', 'spine-author', b.authors));
+        spine.append(texture, copy);
         spine.addEventListener('click', () => openBook(b.id)); bookRow.append(spine);
       }
       group.append(bookRow, element('h3', 'year-caption', year)); $('spines').append(group);
-      const nav = element('button', 'year-link', year);
-      nav.addEventListener('click', () => group.scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', inline:'center', block:'nearest'}));
+    }
+    const years = [...new Set(allDisplayBooks.filter(b => b.addedAt).map(b => b.addedAt.slice(0, 4)))].sort();
+    const options = [['all', 'All books'], ...years.map(y => [y,y])];
+    if (allDisplayBooks.some(b => !b.addedAt)) options.push(['unknown','Date unknown']);
+    for (const [value, label] of options) {
+      const nav = element('button', 'year-link', label);
+      nav.dataset.year = value;
+      nav.type = 'button'; nav.setAttribute('aria-pressed', String(value === activeYear));
+      nav.addEventListener('click', () => {
+        selectYear(value);
+      });
       $('year-nav').append(nav);
     }
-    const visible = filterBooks(shelfBooks(books), $('search').value, $('filter').value);
+    requestAnimationFrame(() => selectYear(activeYear, true));
+    const visible = filterBooks(displayBooks, $('search').value, $('filter').value);
     $('journal').replaceChildren();
     if (!visible.length) $('journal').append(element('p', 'empty', 'No books here yet. Try another search or filter.'));
     for (const b of visible) {
@@ -83,6 +111,37 @@
       row.append(cover, copy, element('span', `status ${b.status}`, labels[b.status])); $('journal').append(row);
     }
   }
+  function selectYear(year, instant = false) {
+    activeYear = year;
+    const groups = [...$('spines').children];
+    const scroller = document.querySelector('.shelf-content');
+    $('spines').classList.toggle('has-selection', year !== 'all');
+    for (const group of groups) group.classList.toggle('is-selected', group.dataset.year === year);
+    for (const button of $('year-nav').children) button.setAttribute('aria-pressed', String(button.dataset.year === year));
+    $('shelf-heading').textContent = year === 'all' ? 'The collection' : year === 'unknown' ? 'Purchase date unknown' : 'Added in ' + year;
+    const target = groups.find(group => group.dataset.year === year);
+    const viewport = scroller.getBoundingClientRect();
+    const first = groups[0]?.getBoundingClientRect(), last = groups.at(-1)?.getBoundingClientRect();
+    if (!first || !last) return;
+    const bounds = target ? target.getBoundingClientRect() : {left:first.left, width:last.right-first.left};
+    scroller.scrollTo({left:yearScrollTarget({scrollLeft:scroller.scrollLeft,viewportLeft:viewport.left,viewportWidth:viewport.width,groupLeft:bounds.left,groupWidth:bounds.width,maxScroll:scroller.scrollWidth-scroller.clientWidth}),behavior:instant || matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});
+  }
+  const scroller = document.querySelector('.shelf-content');
+  let drag = null, suppressClick = false;
+  scroller.addEventListener('pointerdown', event => {
+    if (event.button !== 0 || event.pointerType === 'touch') return;
+    drag = {x:event.clientX, scroll:scroller.scrollLeft, moved:false}; suppressClick = false;
+  });
+  scroller.addEventListener('pointermove', event => {
+    if (!drag) return;
+    const delta = event.clientX - drag.x;
+    if (Math.abs(delta) > 5) { drag.moved = true; suppressClick = true; scroller.classList.add('dragging'); }
+    if (drag.moved) { event.preventDefault(); scroller.scrollLeft = drag.scroll - delta; }
+  });
+  const endDrag = () => { drag = null; scroller.classList.remove('dragging'); };
+  window.addEventListener('pointerup', endDrag); window.addEventListener('pointercancel', endDrag);
+  scroller.addEventListener('click', event => { if (suppressClick) { event.preventDefault(); event.stopPropagation(); suppressClick = false; } }, true);
+  window.addEventListener('resize', () => selectYear(activeYear, true));
   $('close-dialog').addEventListener('click', () => $('book-dialog').close());
   $('book-dialog').addEventListener('click', e => { if (e.target === $('book-dialog')) { const r = e.target.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) e.target.close(); } });
   $('book-form').addEventListener('submit', e => {

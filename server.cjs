@@ -15,6 +15,11 @@ allowed['/assets/engineering-management-cover.jpg'] = ['assets/engineering-manag
 allowed['/assets/the-goal-cover.jpg'] = ['assets/the-goal-cover.jpg', 'image/jpeg'];
 allowed['/assets/library-spines-five.png'] = ['assets/library-spines-five.png', 'image/png'];
 allowed['/assets/library-spines-two.png'] = ['assets/library-spines-two.png', 'image/png'];
+allowed['/assets/elon-musk-cover.jpg'] = ['assets/elon-musk-cover.jpg', 'image/jpeg'];
+allowed['/assets/wool-cover.jpg'] = ['assets/wool-cover.jpg', 'image/jpeg'];
+allowed['/assets/shift-cover.jpg'] = ['assets/shift-cover.jpg', 'image/jpeg'];
+allowed['/assets/dust-cover.jpg'] = ['assets/dust-cover.jpg', 'image/jpeg'];
+allowed['/assets/library-spines-four.png'] = ['assets/library-spines-four.png', 'image/png'];
 const server = http.createServer((req, res) => {
   const file = allowed[req.url.split('?')[0]];
   if (!file || !['GET', 'HEAD'].includes(req.method)) { res.writeHead(404); res.end('Not found'); return; }

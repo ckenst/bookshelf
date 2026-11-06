@@ -1,9 +1,9 @@
 (function () {
-  const statuses = ['reading', 'finishing', 'finished', 'want-to-read', 'unknown', 'unfinished'];
+  const statuses = ['reading', 'finishing', 'finished', 'want-to-read', 'unknown', 'unfinished', 'unread'];
   const formats = ['unspecified', 'kindle', 'audible', 'both'];
   const seedBooks = [
     { id: 'vibe-coding', title: 'Vibe Coding', authors: 'Gene Kim & Steve Yegge', status: 'finishing', format: 'audible', notes: '', theme: 'vibe', addedAt: '2026-06-25', listeningEvents: [{ date: '2026-09-27', status: 'unfinished' }], subtitle: 'Building Production-Grade Software With GenAI, Chat, Agents, and Beyond', source: 'https://www.simonandschuster.com/books/Vibe-Coding/Gene-Kim/9781966280026' },
-    { id: 'protocols', title: 'Protocols', authors: 'Andrew Huberman', status: 'reading', format: 'unspecified', notes: '', theme: 'protocols', subtitle: 'An Operating Manual for the Human Body', source: 'https://www.simonandschuster.com/books/Protocols/Andrew-D-Huberman/9781668032145' },
+    { id: 'protocols', title: 'Protocols', authors: 'Andrew D. Huberman', status: 'reading', format: 'unspecified', notes: '', theme: 'protocols', subtitle: 'An Operating Manual for the Human Body', source: 'https://www.simonandschuster.com/books/Protocols/Andrew-D-Huberman/9781668032145' },
     {"id": "kissinger", "title": "Kissinger", "authors": "Walter Isaacson", "addedAt": "2026-07-27", "status": "unknown", "format": "unspecified", "notes": ""},
     {"id": "titan", "title": "Titan", "authors": "Ron Chernow", "addedAt": "2026-06-25", "status": "unknown", "format": "unspecified", "notes": ""},
     {"id": "the-nvidia-way", "title": "The Nvidia Way", "authors": "Tae Kim", "addedAt": "2026-03-21", "status": "unknown", "format": "unspecified", "notes": ""},
@@ -12,6 +12,9 @@
     {"id": "engineering-management", "title": "Engineering Management for the Rest of Us", "authors": "Author not specified", "status": "unfinished", "format": "audible", "notes": "", "listeningEvents": [{"date": "2026-02-12", "status": "unfinished"}]},
     {"id": "the-goal", "title": "The Goal", "authors": "Goldratt", "status": "finished", "format": "audible", "notes": "", "listeningEvents": [{"date": "2025-11-07", "status": "finished"}]}
   ];
+  seedBooks.push(...[{"id": "elon-musk", "title": "Elon Musk", "authors": "Walter Isaacson", "addedAt": "2025-08-22", "finishedAt": "2025-12-12", "status": "finished", "statusRevision": 1, "format": "unspecified", "notes": ""}, {"id": "wool", "title": "Wool", "authors": "Hugh Howey", "addedAt": "2025-01-24", "finishedAt": "2025-02-19", "status": "finished", "statusRevision": 1, "format": "unspecified", "notes": ""}, {"id": "shift", "title": "Shift", "authors": "Hugh Howey", "addedAt": "2025-06-04", "finishedAt": "2025-06-18", "status": "finished", "statusRevision": 1, "format": "unspecified", "notes": ""}, {"id": "dust", "title": "Dust", "authors": "Hugh Howey", "addedAt": "2025-07-21", "finishedAt": "2025-08-01", "status": "finished", "statusRevision": 1, "format": "unspecified", "notes": ""}]);
+  seedBooks.find(b => b.id === "protocols").addedAt = "2026-10";
+  seedBooks.find(b => b.id === "engineering-management").addedAt = "2025-10-25";
   const artwork = {
   "kissinger": {
     "cover": "assets/kissinger-cover.jpg",
@@ -91,9 +94,14 @@
     "spineCount": 2
   }
 };
+  Object.assign(artwork, {"elon-musk": {"cover": "assets/elon-musk-cover.jpg", "coverSource": "https://d28hgpri8am2if.cloudfront.net/book_images/onix/cvr9781982181284/elon-musk-9781982181284_hr.jpg", "source": "https://www.simonandschuster.com/books/Elon-Musk/Walter-Isaacson/9781982181284", "pages": 688, "spineAtlas": "assets/library-spines-four.png", "spineIndex": 0, "spineCount": 4}, "wool": {"cover": "assets/wool-cover.jpg", "coverSource": "https://cdn.penguin.co.uk/dam-assets/books/9781804940822/9781804940822-jacket-large.jpg", "source": "https://www.penguin.co.uk/books/416558/wool-by-howey-hugh/9781804940822", "pages": 576, "spineAtlas": "assets/library-spines-four.png", "spineIndex": 1, "spineCount": 4}, "shift": {"cover": "assets/shift-cover.jpg", "coverSource": "https://cdn.penguin.co.uk/dam-assets/books/9781804940839/9781804940839-jacket-large.jpg", "source": "https://www.penguin.co.uk/books/416773/shift-by-howey-hugh/9781804940839", "pages": 592, "spineAtlas": "assets/library-spines-four.png", "spineIndex": 2, "spineCount": 4}, "dust": {"cover": "assets/dust-cover.jpg", "coverSource": "https://cdn.penguin.co.uk/dam-assets/books/9781804940846/9781804940846-jacket-large.jpg", "source": "https://www.penguin.co.uk/books/418340/dust-by-howey-hugh/9781804940846", "pages": 416, "spineAtlas": "assets/library-spines-four.png", "spineIndex": 3, "spineCount": 4}});
   for (const book of seedBooks) Object.assign(book, artwork[book.id]);
   seedBooks.find(b => b.id === "engineering-management").authors = "Sarah Drasner";
   seedBooks.find(b => b.id === "the-goal").authors = "Eliyahu M. Goldratt & Jeff Cox";
+  for (const book of seedBooks) {
+    if (book.status === 'unknown') { book.status = 'unread'; book.statusRevision = 1; }
+    if (['engineering-management', 'protocols'].includes(book.id)) { book.status = 'reading'; book.statusRevision = 1; }
+  }
   function filterBooks(books, query = '', status = 'all') {
     const search = query.trim().toLowerCase();
     return books.filter(b => `${b.title} ${b.authors}`.toLowerCase().includes(search) &&
@@ -120,21 +128,32 @@
       const old = existing.get(seed.id);
       if (!old) return { ...seed };
       const book = { ...seed, ...old, ...artwork[seed.id], authors: seed.authors };
+      if ((old.statusRevision || 0) < (seed.statusRevision || 0)) { book.status = seed.status; book.statusRevision = seed.statusRevision; }
+      if (book.status === 'unknown') book.status = 'unread';
       if (seed.addedAt) book.addedAt = seed.addedAt;
+      if (seed.finishedAt) book.finishedAt = seed.finishedAt;
       if (seed.listeningEvents) book.listeningEvents = seed.listeningEvents.map(e => ({ ...e }));
       if (old.format === 'unspecified' && seed.format !== 'unspecified') book.format = seed.format;
       return book;
     });
-    return merged.concat(saved.filter(b => !seedBooks.some(seed => seed.id === b.id)));
+    return merged.concat(saved.filter(b => !seedBooks.some(seed => seed.id === b.id)).map(b => b.status === 'unknown' ? {...b, status:'unread'} : b));
   }
   function shelfBooks(books) {
     return books.filter(b => typeof b.cover === 'string' && /^assets\/[a-z0-9-]+-cover\.jpg$/.test(b.cover) && typeof b.coverSource === 'string' && b.coverSource.startsWith('https://'));
   }
   function shelfDimensions(book) {
     const pages = Number.isFinite(book.pages) && book.pages > 0 ? book.pages : 320;
-    return { width: Math.max(18, Math.min(52, Math.round(8 + pages * 0.045))), height: 260, estimated: true };
+    return { width: Math.max(book.title?.length > 30 ? 46 : 38, Math.min(64, Math.round(25 + pages * 0.035))), height: 260, estimated: true };
   }
-  const api = { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, shelfBooks, shelfDimensions };
+  function yearScrollTarget({ scrollLeft, viewportLeft, viewportWidth, groupLeft, groupWidth, maxScroll }) {
+    return Math.max(0, Math.min(maxScroll, scrollLeft + groupLeft - viewportLeft - (viewportWidth - groupWidth) / 2));
+  }
+  function formatBookDate(value) {
+    const monthOnly = /^\d{4}-\d{2}$/.test(value);
+    const date = new Date(value + (monthOnly ? '-01' : '') + 'T12:00:00Z');
+    return date.toLocaleDateString('en-US', { month:'short', ...(monthOnly ? {} : {day:'numeric'}), year:'numeric', timeZone:'UTC' });
+  }
+  const api = { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, shelfBooks, shelfDimensions, yearScrollTarget, formatBookDate };
   if (typeof module !== 'undefined') module.exports = api;
   else globalThis.BookshelfModel = api;
 })();
