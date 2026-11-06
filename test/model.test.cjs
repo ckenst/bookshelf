@@ -1,8 +1,8 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary } = require('../dist/model.js');
-test('all thirteen distinct books are retained and Vibe Coding is deduplicated', () => {
- assert.equal(seedBooks.length, 13);
+test('all fifty-one distinct books are retained and Vibe Coding is deduplicated', () => {
+ assert.equal(seedBooks.length, 51);
  assert.equal(seedBooks.filter(b => b.id === 'vibe-coding').length, 1);
  assert.equal(seedBooks.find(b => b.id === 'protocols').status, 'reading');
 });
@@ -16,15 +16,15 @@ test('purchase dates and listening observations remain separate', () => {
  assert.equal(goal.status, 'finished');
  assert.equal(goal.listeningEvents[0].date, '2025-11-07');
  assert.equal(goal.finishedAt, undefined);
- assert.equal(goal.addedAt, undefined);
+ assert.equal(goal.addedAt, '2024-01-18');
  assert.equal(seedBooks.find(b => b.id === 'titan').status, 'unread');
- assert.equal(seedBooks.find(b => b.id === 'titan').format, 'unspecified');
+ assert.equal(seedBooks.find(b => b.id === 'titan').format, 'audible');
 });
 test('new history appears for existing browser libraries without losing edits', () => {
  const old = [{ ...seedBooks[0], notes: 'Keep this note', status: 'finished', format: 'both' }, seedBooks[1]];
  delete old[0].addedAt; delete old[0].listeningEvents;
  const merged = mergeLibrary(old);
- assert.equal(merged.length, 13);
+ assert.equal(merged.length, 51);
  assert.equal(merged[0].notes, 'Keep this note');
  assert.equal(merged[0].status, 'finished');
  assert.equal(merged[0].format, 'both');
@@ -35,8 +35,8 @@ test('new history appears for existing browser libraries without losing edits', 
 test('search and status filters distinguish active, unread and finished', () => {
  assert.equal(filterBooks(seedBooks, 'YEGGE', 'reading').length, 1);
  assert.equal(filterBooks(seedBooks, '', 'reading').length, 3);
- assert.equal(filterBooks(seedBooks, '', 'unfinished').length, 0);
- assert.equal(filterBooks(seedBooks, '', 'unread').length, 5);
+ assert.equal(filterBooks(seedBooks, '', 'unfinished').length, 2);
+ assert.equal(filterBooks(seedBooks, '', 'unread').length, 17);
  assert.equal(filterBooks(seedBooks, '', 'finished')[0].id, 'the-goal');
 });
 test('edits preserve identity and history while rejecting invalid fields', () => {
@@ -64,7 +64,7 @@ test('explicit status corrections migrate old browser records once and preserve 
 });
 test('all author names use consistent published full names', () => {
  const expected = {'vibe-coding':'Gene Kim & Steve Yegge', protocols:'Andrew D. Huberman', kissinger:'Walter Isaacson', titan:'Ron Chernow', 'the-nvidia-way':'Tae Kim', breakneck:'Dan Wang', 'the-comfort-crisis':'Michael Easter', 'engineering-management':'Sarah Drasner', 'the-goal':'Eliyahu M. Goldratt & Jeff Cox', 'elon-musk':'Walter Isaacson', dust:'Hugh Howey', shift:'Hugh Howey', wool:'Hugh Howey'};
- for (const b of seedBooks) assert.equal(b.authors, expected[b.id]);
+ for (const [id, authors] of Object.entries(expected)) assert.equal(seedBooks.find(b => b.id === id).authors, authors);
 });
 test('long titles reserve room for two readable text columns', () => {
  const { shelfDimensions } = require('../dist/model.js');
@@ -98,4 +98,30 @@ test('month precision never displays an invented day', () => {
  const {formatBookDate}=require('../dist/model.js');
  assert.equal(formatBookDate('2026-10'),'Oct 2026');
  assert.equal(formatBookDate('2025-12-12'),'Dec 12, 2025');
+});
+
+
+test('sample-only titles are excluded and every reviewed book has its chosen status', () => {
+ const review = {
+  'the-profiteers':'paused', 'caffeine':'finished', 'the-tales-of-beedle-the-bard':'finished',
+  'the-age-of-surveillance-capitalism':'paused', 'an-elegant-puzzle-systems-of-engineering-management':'paused',
+  'food-rules':'finished', 'love-pamela':'finished', 'capitalism-in-america':'finished',
+  'me':'finished', 'the-revolt-of-the-public-and-the-crisis-of-authority-in-the-new-millennium':'paused',
+  'friends-lovers-and-the-big-terrible-thing':'finished', 'thinking-in-systems':'paused',
+  'million-dollar-weekend':'finished', 'dune-messiah':'finished', 'what-the-heck-is-eos':'finished',
+  'radical-candor-fully-revised-updated-edition':'paused', 'tiny-experiments':'paused'
+ };
+ assert.equal(seedBooks.length,51);
+ for (const [id,status] of Object.entries(review)) assert.equal(seedBooks.find(b=>b.id===id)?.status,status,id);
+ for (const id of ['it-s-not-luck','dreamland','invent-and-wander']) {
+  assert.equal(seedBooks.find(b=>b.id===id),undefined);
+  assert.equal(mergeLibrary([{id,title:id,authors:'Test',status:'unread',format:'audible',notes:'Saved note'}]).find(b=>b.id===id),undefined);
+ }
+ assert.ok(seedBooks.every(b=>b.status && b.status!=='unknown'));
+ const prior={...seedBooks.find(b=>b.id==='the-profiteers'),status:'unfinished',statusRevision:0,notes:'Keep note'};
+ const migrated=mergeLibrary([prior]).find(b=>b.id==='the-profiteers');
+ assert.equal(migrated.status,'paused'); assert.equal(migrated.notes,'Keep note');
+ assert.equal(mergeLibrary(updateBook([migrated],'the-profiteers',{status:'reading'})).find(b=>b.id==='the-profiteers').status,'reading');
+ assert.equal(updateBook(seedBooks,'the-profiteers',{status:'paused'}).find(b=>b.id==='the-profiteers').status,'paused');
+ assert.deepEqual(parseLibrary(JSON.stringify(seedBooks)),seedBooks);
 });

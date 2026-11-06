@@ -10,7 +10,7 @@ You can also open `dist/index.html` directly. Use a consistent browser and addre
 
 The main view is a visual shelf grouped by purchase year. Click a narrow spine for the real published cover and history; expand the edit controls to update status, format, or notes. The searchable reading journal is collapsed beneath the shelf. Changes are stored in this browser's local storage.
 
-There are no external fonts, image requests, analytics, cloud storage, or account connections. Publisher links open only when clicked. Spines are cover-based reconstructions made with the built-in image generation tool using the official covers as references; they are not verified physical-spine scans. The journal and detail dialog display actual published cover images from publishers or ebook retailers, stored locally. Cover editions are reference editions and may differ from your Kindle or Audible editions. Books without a cover asset and source are excluded from display. See dist/assets/SOURCES.md for provenance. Book subtitles and publisher links were checked against the official publisher pages.
+There are no external fonts, image requests, analytics, cloud storage, or account connections. Publisher links open only when clicked. Spines are cover-based reconstructions made with the built-in image generation tool using the official covers as references; they are not verified physical-spine scans. The journal and detail dialog display actual published cover images from publishers, ebook retailers, or Audible, stored locally. New Audible spines crop their real cover images and use HTML lettering. Cover editions are reference editions and may differ from your Kindle or Audible editions. Books without a cover asset and source are excluded from display. See dist/assets/SOURCES.md for provenance. Book subtitles and publisher links were checked against the official publisher pages.
 
 ## Checks
 
@@ -37,7 +37,7 @@ References: [custom workflows](https://docs.github.com/en/pages/getting-started-
 
 ## When exports arrive
 
-Keep raw Kindle/Audible exports in an ignored `private-data/` folder. They must be inspected before an importer is written. No Amazon import or automatic sync is implemented yet. Current seed records live in `dist/model.js`; the UI is `dist/index.html`, `dist/style.css`, and `dist/app.js`.
+Keep raw Kindle/Audible exports in an ignored `private-data/` folder. They must be inspected before an importer is written. A one-time manual Audible history scan was imported in November 2026; no automatic sync is implemented. The signed-in Chrome tab was saved locally to collect the published Audible covers. Audible activity dates are observations, not inferred start or finish dates. One returned purchase and one sample were excluded. Current seed records live in `dist/model.js`; the UI is `dist/index.html`, `dist/style.css`, and `dist/app.js`.
 
 The initial shelf records what you reported on November 5, 2026. This is not a purchase or reading-start date. The shelf groups known purchase dates into 2025 and 2026; books without purchase dates stay in a separate Date unknown group. Listening observations never determine purchase-year placement.
 

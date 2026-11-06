@@ -2,7 +2,7 @@
   const { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, shelfBooks, shelfDimensions, yearScrollTarget, formatBookDate } = BookshelfModel;
   const key = 'personal-bookshelf-v1';
   const $ = id => document.getElementById(id);
-  const labels = { reading: 'Reading', finishing: 'Nearly finished', finished: 'Finished', 'want-to-read': 'Want to read', unknown: 'Unread', unread: 'Unread', unfinished: 'Not finished' };
+  const labels = { reading: 'Reading', finishing: 'Nearly finished', paused: 'Paused', finished: 'Finished', 'want-to-read': 'Want to read', unknown: 'Unread', unread: 'Unread', unfinished: 'Not finished' };
   let books = mergeLibrary([]);
   let activeId;
   let activeYear = 'all';
@@ -25,6 +25,10 @@
     if (book.addedAt) lines.push('Purchased / added ' + dateLabel(book.addedAt));
     if (book.finishedAt) lines.push('Finished ' + dateLabel(book.finishedAt));
     for (const event of book.listeningEvents || []) lines.push('Listening entry ' + dateLabel(event.date) + ' (' + labels[event.status].toLowerCase() + ')');
+    if (book.audibleObservation) {
+      const observation = book.audibleObservation;
+      lines.push('Audible activity ' + dateLabel(observation.observedAt) + ' (' + observation.progressPercent + '%; ' + observation.displayedProgress.toLowerCase() + '). Activity date is not a completion date.');
+    }
     return lines.join(' · ');
   }
   function openBook(id) {
@@ -57,7 +61,7 @@
       group.dataset.year = year === 'Date unknown' ? 'unknown' : year;
       const bookRow = element('div', 'year-books');
       for (const b of groupBooks) {
-        const spine = element('button', 'spine');
+        const spine = element('button', b.spineAtlas ? 'spine' : 'spine imported');
         const dims = shelfDimensions(b);
         spine.type = 'button'; spine.setAttribute('aria-label', `${b.title} by ${b.authors}, ${labels[b.status]}`);
         spine.title = `${b.title} — click for cover and details`;
@@ -65,9 +69,9 @@
         const texture = element('span', 'spine-art');
         texture.setAttribute('aria-hidden', 'true');
         // Cover-derived spine artwork stays visible; crisp labels appear on hover or focus.
-        texture.style.backgroundImage = `url('${b.spineAtlas}')`;
-        texture.style.backgroundSize = `${b.spineCount * 100}% 100%`;
-        texture.style.backgroundPosition = `${b.spineIndex / (b.spineCount - 1) * 100}% top`;
+        texture.style.backgroundImage = `url('${b.spineAtlas || b.cover}')`;
+        texture.style.backgroundSize = b.spineAtlas ? `${b.spineCount * 100}% 100%` : 'auto 100%';
+        texture.style.backgroundPosition = b.spineAtlas ? `${b.spineIndex / (b.spineCount - 1) * 100}% top` : 'center';
         const palettes = {
           'vibe-coding':['#09150b','#c5ff92'], protocols:['#faf7ef','#008db8'],
           kissinger:['#392116','#fff6e9'], titan:['#8da997','#13251a'],

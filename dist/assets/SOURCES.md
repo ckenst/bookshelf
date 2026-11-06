@@ -34,3 +34,11 @@ Readability update: the active shelf now renders native text over lightly tinted
 The real front cover of Elon Musk comes from Simon & Schuster. Wool, Shift and Dust use publisher covers from Penguin; the older author-site image URLs returned 404. Exact sources are recorded in cover-sources.json and each book record. These reference editions may differ from the user's own editions. Reference page counts are 688, 576, 592 and 416 respectively, from the linked publisher pages.
 
 library-spines-four.png is a built-in ImageGen reconstruction using those four real cover references, not a scan. Left to right: Elon Musk, Wool, Shift, Dust. Prompt brief: produce four equal-width flat vertical spine textures in one square atlas, edge-to-edge with no gaps, margins, perspective or front covers. Preserve each supplied cover's palette and motif: black/silver portrait Elon Musk; teal misty valley Wool; icy cyan corridor Shift; ochre desert Dust. Use the exact titles, Walter Isaacson for Elon Musk and Hugh Howey for the trilogy. Clearly treat these as cover-based reconstructions.
+
+## Audible history covers (November 2026)
+
+The 37 retained Audible additions use real cover images displayed on the signed-in Audible listen and purchase history pages. Chrome saved those pages with their image assets. Every local image's original Audible image URL is recorded in `cover-sources.json`. These are audiobook covers and may differ from Kindle or print editions. Their narrow shelf spines crop the saved cover image and add HTML title and author labels; they are not physical spine scans. The cover saved in each book's detail view is the intact image.
+
+## High Growth Handbook
+
+The real cover image was saved from the signed-in Audible purchase history page; its original image URL is recorded in `cover-sources.json`. The user owns the Kindle edition and supplied its purchase date and Not finished status. The cover shown may differ from the Kindle edition.
