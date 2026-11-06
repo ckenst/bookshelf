@@ -1,0 +1,25 @@
+const http = require('node:http');
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.join(__dirname, 'dist');
+const allowed = { '/': ['index.html', 'text/html; charset=utf-8'], '/index.html': ['index.html', 'text/html; charset=utf-8'], '/style.css': ['style.css', 'text/css'], '/model.js': ['model.js', 'text/javascript'], '/app.js': ['app.js', 'text/javascript'] };
+allowed['/assets/vibe-coding-cover.jpg'] = ['assets/vibe-coding-cover.jpg', 'image/jpeg'];
+allowed['/assets/protocols-cover.jpg'] = ['assets/protocols-cover.jpg', 'image/jpeg'];
+allowed['/assets/cover-based-spines.png'] = ['assets/cover-based-spines.png', 'image/png'];
+allowed['/assets/kissinger-cover.jpg'] = ['assets/kissinger-cover.jpg', 'image/jpeg'];
+allowed['/assets/titan-cover.jpg'] = ['assets/titan-cover.jpg', 'image/jpeg'];
+allowed['/assets/the-nvidia-way-cover.jpg'] = ['assets/the-nvidia-way-cover.jpg', 'image/jpeg'];
+allowed['/assets/breakneck-cover.jpg'] = ['assets/breakneck-cover.jpg', 'image/jpeg'];
+allowed['/assets/the-comfort-crisis-cover.jpg'] = ['assets/the-comfort-crisis-cover.jpg', 'image/jpeg'];
+allowed['/assets/engineering-management-cover.jpg'] = ['assets/engineering-management-cover.jpg', 'image/jpeg'];
+allowed['/assets/the-goal-cover.jpg'] = ['assets/the-goal-cover.jpg', 'image/jpeg'];
+allowed['/assets/library-spines-five.png'] = ['assets/library-spines-five.png', 'image/png'];
+allowed['/assets/library-spines-two.png'] = ['assets/library-spines-two.png', 'image/png'];
+const server = http.createServer((req, res) => {
+  const file = allowed[req.url.split('?')[0]];
+  if (!file || !['GET', 'HEAD'].includes(req.method)) { res.writeHead(404); res.end('Not found'); return; }
+  res.writeHead(200, { 'Content-Type': file[1], 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'" });
+  if (req.method === 'HEAD') res.end(); else fs.createReadStream(path.join(root, file[0])).pipe(res);
+});
+server.listen(4173, '127.0.0.1', () => console.log('Bookshelf: http://127.0.0.1:4173'));
+server.on('error', err => { console.error(err.code === 'EADDRINUSE' ? 'Port 4173 is already in use.' : err.message); process.exitCode = 1; });

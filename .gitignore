@@ -1,0 +1,7 @@
+private-data/
+work/
+outputs/
+node_modules/
+.env
+.env.*
+!.env.example
