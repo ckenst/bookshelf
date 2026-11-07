@@ -1,5 +1,5 @@
 (() => {
-  const { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, shelfBooks, shelfDimensions, isLocalLibrary, yearScrollTarget, formatBookHistory } = BookshelfModel;
+  const { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, shelfBooks, groupBooksByDecade, shelfDimensions, isLocalLibrary, yearScrollTarget, latestShelfScrollTarget, formatBookHistory } = BookshelfModel;
   const key = 'personal-bookshelf-v1';
   const localMode = isLocalLibrary(location);
   document.documentElement.classList.toggle('local-library', localMode);
@@ -49,43 +49,54 @@
     $('publisher-link').hidden = !source; if (source) $('publisher-link').href = source;
     $('book-dialog').showModal();
   }
+  function makeYearGroup(year, groupBooks) {
+    const group = element('section', 'year-group');
+    group.setAttribute('aria-label', year);
+    group.dataset.year = year === 'Date unknown' ? 'unknown' : year;
+    const bookRow = element('div', 'year-books');
+    for (const b of groupBooks) {
+      const spine = element('button', b.spineAtlas ? 'spine' : 'spine imported');
+      const dims = shelfDimensions(b);
+      spine.type = 'button'; spine.setAttribute('aria-label', `${b.title} by ${b.authors}${localMode ? ', ' + labels[b.status] : ''}`);
+      spine.style.width = dims.width + 'px'; spine.style.height = Math.round(dims.height * .68) + 'px';
+      const texture = element('span', 'spine-art');
+      texture.setAttribute('aria-hidden', 'true');
+      texture.style.backgroundImage = `url('${b.spineAtlas || b.cover}')`;
+      texture.style.backgroundSize = b.spineAtlas ? `${b.spineCount * 100}% 100%` : 'auto 100%';
+      texture.style.backgroundPosition = b.spineAtlas ? `${b.spineIndex / (b.spineCount - 1) * 100}% top` : 'center';
+      spine.append(texture);
+      spine.addEventListener('pointerenter', event => { if (event.pointerType !== 'touch') showTooltip(spine, b); });
+      spine.addEventListener('pointerleave', hideTooltip);
+      spine.addEventListener('focus', () => showTooltip(spine, b));
+      spine.addEventListener('blur', hideTooltip);
+      spine.addEventListener('click', () => { hideTooltip(); openBook(b.id); });
+      bookRow.append(spine);
+    }
+    group.append(bookRow, element('h4', 'year-caption', year));
+    return group;
+  }
   function render() {
     const allDisplayBooks = shelfBooks(books);
     const displayBooks = allDisplayBooks;
     $('book-count').textContent = `${allDisplayBooks.length} books`;
     $('shelf-heading').textContent = activeYear === 'all' ? 'The collection' : activeYear === 'unknown' ? 'Added date unknown' : 'Added in ' + activeYear;
     hideTooltip(); $('spines').replaceChildren(); $('year-nav').replaceChildren();
-    const groups = new Map();
-    for (const b of [...displayBooks].sort((a, b) => (a.addedAt || '9999').localeCompare(b.addedAt || '9999'))) {
-      const year = b.addedAt ? b.addedAt.slice(0, 4) : 'Date unknown';
-      if (!groups.has(year)) groups.set(year, []);
-      groups.get(year).push(b);
-    }
-    for (const [year, groupBooks] of groups) {
-      const group = element('section', 'year-group');
-      group.setAttribute('aria-label', year);
-      group.dataset.year = year === 'Date unknown' ? 'unknown' : year;
-      const bookRow = element('div', 'year-books');
-      for (const b of groupBooks) {
-        const spine = element('button', b.spineAtlas ? 'spine' : 'spine imported');
-        const dims = shelfDimensions(b);
-        spine.type = 'button'; spine.setAttribute('aria-label', `${b.title} by ${b.authors}${localMode ? ', ' + labels[b.status] : ''}`);
-        spine.style.width = dims.width + 'px'; spine.style.height = dims.height + 'px';
-        const texture = element('span', 'spine-art');
-        texture.setAttribute('aria-hidden', 'true');
-        // Cover-derived artwork stays visible; the title is shown in a separate tooltip.
-        texture.style.backgroundImage = `url('${b.spineAtlas || b.cover}')`;
-        texture.style.backgroundSize = b.spineAtlas ? `${b.spineCount * 100}% 100%` : 'auto 100%';
-        texture.style.backgroundPosition = b.spineAtlas ? `${b.spineIndex / (b.spineCount - 1) * 100}% top` : 'center';
-        spine.append(texture);
-        spine.addEventListener('pointerenter', event => { if (event.pointerType !== 'touch') showTooltip(spine, b); });
-        spine.addEventListener('pointerleave', hideTooltip);
-        spine.addEventListener('focus', () => showTooltip(spine, b));
-        spine.addEventListener('blur', hideTooltip);
-        spine.addEventListener('click', () => { hideTooltip(); openBook(b.id); });
-        bookRow.append(spine);
+    for (const decadeGroup of groupBooksByDecade(displayBooks)) {
+      const shelf = element('section', 'decade-shelf');
+      shelf.dataset.decade = decadeGroup.decade;
+      const shelfLabel = element('h3', 'decade-label', decadeGroup.label);
+      const scroller = element('div', 'shelf-content');
+      const row = element('div', 'spines');
+      const yearGroups = new Map();
+      for (const b of [...decadeGroup.books].sort((a, b) => (a.addedAt || '9999').localeCompare(b.addedAt || '9999'))) {
+        const year = b.addedAt ? b.addedAt.slice(0, 4) : 'Date unknown';
+        if (!yearGroups.has(year)) yearGroups.set(year, []);
+        yearGroups.get(year).push(b);
       }
-      group.append(bookRow, element('h3', 'year-caption', year)); $('spines').append(group);
+      for (const [year, groupBooks] of yearGroups) row.append(makeYearGroup(year, groupBooks));
+      scroller.append(row);
+      shelf.append(shelfLabel, scroller, element('div', 'wood-shelf'));
+      $('spines').append(shelf);
     }
     const years = [...new Set(allDisplayBooks.filter(b => b.addedAt).map(b => b.addedAt.slice(0, 4)))].sort();
     const options = [['all', 'All books'], ...years.map(y => [y,y])];
@@ -99,6 +110,7 @@
       });
       $('year-nav').append(nav);
     }
+    setupShelfScrolling();
     requestAnimationFrame(() => selectYear(activeYear, true));
     if (!localMode) return;
     const visible = filterBooks(displayBooks, $('search').value, $('filter').value);
@@ -116,35 +128,43 @@
   }
   function selectYear(year, instant = false) {
     hideTooltip(); activeYear = year;
-    const groups = [...$('spines').children];
-    const scroller = document.querySelector('.shelf-content');
+    const groups = [...document.querySelectorAll('.year-group')];
     $('spines').classList.toggle('has-selection', year !== 'all');
     for (const group of groups) group.classList.toggle('is-selected', group.dataset.year === year);
     for (const button of $('year-nav').children) button.setAttribute('aria-pressed', String(button.dataset.year === year));
     $('shelf-heading').textContent = year === 'all' ? 'The collection' : year === 'unknown' ? 'Added date unknown' : 'Added in ' + year;
+    if (year === 'all') {
+      for (const shelfScroller of document.querySelectorAll('.shelf-content')) shelfScroller.scrollTo({left:latestShelfScrollTarget(shelfScroller), behavior:instant || matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});
+      return;
+    }
     const target = groups.find(group => group.dataset.year === year);
+    const scroller = target?.closest('.shelf-content') || document.querySelector('.shelf-content');
+    if (!scroller) return;
     const viewport = scroller.getBoundingClientRect();
     const first = groups[0]?.getBoundingClientRect(), last = groups.at(-1)?.getBoundingClientRect();
     if (!first || !last) return;
     const bounds = target ? target.getBoundingClientRect() : {left:first.left, width:last.right-first.left};
     scroller.scrollTo({left:yearScrollTarget({scrollLeft:scroller.scrollLeft,viewportLeft:viewport.left,viewportWidth:viewport.width,groupLeft:bounds.left,groupWidth:bounds.width,maxScroll:scroller.scrollWidth-scroller.clientWidth}),behavior:instant || matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth'});
   }
-  const scroller = document.querySelector('.shelf-content');
-  let drag = null, suppressClick = false;
-  scroller.addEventListener('scroll', () => { if (!tooltip.hidden && tooltipTarget?.isConnected) positionTooltip(tooltipTarget); }, { passive: true });
-  scroller.addEventListener('pointerdown', event => {
-    if (event.button !== 0 || event.pointerType === 'touch') return;
-    drag = {x:event.clientX, scroll:scroller.scrollLeft, moved:false}; suppressClick = false;
-  });
-  scroller.addEventListener('pointermove', event => {
-    if (!drag) return;
-    const delta = event.clientX - drag.x;
-    if (Math.abs(delta) > 5) { drag.moved = true; suppressClick = true; scroller.classList.add('dragging'); }
-    if (drag.moved) { event.preventDefault(); scroller.scrollLeft = drag.scroll - delta; }
-  });
-  const endDrag = () => { drag = null; scroller.classList.remove('dragging'); };
-  window.addEventListener('pointerup', endDrag); window.addEventListener('pointercancel', endDrag);
-  scroller.addEventListener('click', event => { if (suppressClick) { event.preventDefault(); event.stopPropagation(); suppressClick = false; } }, true);
+  function setupShelfScrolling() {
+    for (const scroller of document.querySelectorAll('.shelf-content')) {
+      let drag = null, suppressClick = false;
+      scroller.addEventListener('scroll', () => { if (!tooltip.hidden && tooltipTarget?.isConnected) positionTooltip(tooltipTarget); }, { passive: true });
+      scroller.addEventListener('pointerdown', event => {
+        if (event.button !== 0 || event.pointerType === 'touch') return;
+        drag = {x:event.clientX, scroll:scroller.scrollLeft, moved:false}; suppressClick = false;
+      });
+      scroller.addEventListener('pointermove', event => {
+        if (!drag) return;
+        const delta = event.clientX - drag.x;
+        if (Math.abs(delta) > 5) { drag.moved = true; suppressClick = true; scroller.classList.add('dragging'); }
+        if (drag.moved) { event.preventDefault(); scroller.scrollLeft = drag.scroll - delta; }
+      });
+      const endDrag = () => { drag = null; scroller.classList.remove('dragging'); };
+      window.addEventListener('pointerup', endDrag); window.addEventListener('pointercancel', endDrag);
+      scroller.addEventListener('click', event => { if (suppressClick) { event.preventDefault(); event.stopPropagation(); suppressClick = false; } }, true);
+    }
+  }
   window.addEventListener('resize', () => selectYear(activeYear, true));
   $('close-dialog').addEventListener('click', () => $('book-dialog').close());
   $('book-dialog').addEventListener('click', e => { if (e.target === $('book-dialog')) { const r = e.target.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) e.target.close(); } });

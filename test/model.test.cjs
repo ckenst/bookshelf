@@ -1,10 +1,26 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary } = require('../dist/model.js');
+const { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, groupBooksByDecade, latestShelfScrollTarget } = require('../dist/model.js');
 test('all 175 distinct books are retained and Vibe Coding is deduplicated', () => {
  assert.equal(seedBooks.length, 175);
  assert.equal(seedBooks.filter(b => b.id === 'vibe-coding').length, 1);
  assert.equal(seedBooks.find(b => b.id === 'protocols').status, 'reading');
+});
+test('books are grouped into decade shelves with the current decade first', () => {
+ const groups = groupBooksByDecade([
+  { id: 'older', addedAt: '2019-12-31' },
+  { id: 'newer', addedAt: '2026-01-01' },
+  { id: 'unknown' }
+ ]);
+ assert.deepEqual(groups.map(group => group.decade), [2020, 2010]);
+ assert.deepEqual(groups[0].books.map(book => book.id), ['newer']);
+ assert.deepEqual(groups[1].books.map(book => book.id), ['older', 'unknown']);
+ assert.equal(groups[0].label, '2020s');
+ assert.equal(groups[1].label, '2010s');
+});
+test('the default shelf position reveals the latest books', () => {
+ assert.equal(latestShelfScrollTarget({ scrollWidth: 2200, clientWidth: 800 }), 1400);
+ assert.equal(latestShelfScrollTarget({ scrollWidth: 600, clientWidth: 800 }), 0);
 });
 test('all retained Kindle review entries display with real local covers', () => {
  const { shelfBooks } = require('../dist/model.js');

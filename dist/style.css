@@ -14,8 +14,8 @@ dialog{border:1px solid #d6d8ca;border-radius:6px;background:var(--paper);color:
 .year-nav{flex-wrap:wrap}
 .status.unread{background:#e7e6e1;color:#72766c}
 
-/* End space lets every year slide to the center, even for a small library. */
-.spines{padding-left:calc(50vw - 64px);padding-right:calc(50vw - 64px);min-width:0}
+/* Compact edge gutters keep full shelves visually full. */
+.spines{padding-left:32px;padding-right:32px;min-width:0}
 .shelf-content{cursor:grab;user-select:none;touch-action:pan-x pan-y}
 .shelf-content.dragging{cursor:grabbing}
 .spine-art{opacity:.035}
@@ -38,3 +38,13 @@ html:not(.local-library) .journal-disclosure,html:not(.local-library) .edit-deta
 .spine-tooltip[hidden]{display:none}
 .tooltip-title{display:block;font:16px/1.25 var(--serif)}
 .tooltip-author{display:block;margin-top:4px;font-size:10px;line-height:1.35;color:#d8e0d6}
+
+/* Two compact, independently scrollable decade shelves. */
+.shelf-room{padding:28px 0 34px}
+.shelf-stack{display:flex;flex-direction:column;gap:34px}
+.decade-shelf{position:relative}
+.decade-label{position:absolute;z-index:2;top:5px;left:32px;margin:0;padding:5px 8px;background:#f0ece3e8;color:#676d61;font-size:9px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase}
+.decade-shelf .shelf-content{padding:12px 0 0}
+.decade-shelf .spines{padding-top:14px}
+.decade-shelf .wood-shelf{height:12px}
+@media(max-width:600px){.shelf-room{padding:20px 0 28px}.shelf-stack{gap:28px}.decade-label{left:20px}.decade-shelf .shelf-content{padding-top:10px}.decade-shelf .spines{padding-left:20px;padding-right:20px}}

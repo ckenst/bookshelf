@@ -39,6 +39,12 @@ test('only local addresses enable private journal and edits', () => {
   assert.equal(isLocalLibrary({protocol:'https:',hostname:'ckenst.github.io'}),false);
 });
 
+test('decade shelves use compact edge gutters so books fill the viewport', () => {
+  const css = fs.readFileSync(path.join(__dirname, '../dist/style.css'), 'utf8');
+  assert.doesNotMatch(css, /padding-(?:left|right):calc\(50vw/);
+  assert.match(css, /\.spines\{padding-left:32px;padding-right:32px/);
+});
+
 test('local server serves every catalog cover', async () => {
   const { server } = require('../server.cjs');
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));

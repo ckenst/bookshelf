@@ -1,6 +1,6 @@
 # My bookshelf
 
-A personal, visual bookshelf of 175 books from Kindle and Audible. Narrow spines are grouped by added year; selecting a book reveals its real published cover and added date. The local preview also has reading statuses, known completion dates, and editing controls. Completion dates appear only when explicitly supplied.
+A personal, visual bookshelf of 175 books from Kindle and Audible. Narrow spines are grouped by added year across two stacked decade shelves, with the 2020s above the 2010s; selecting a book reveals its real published cover and added date. The local preview also has reading statuses, known completion dates, and editing controls. Completion dates appear only when explicitly supplied.
 
 ## Inspiration
 
@@ -12,7 +12,7 @@ Run `npm start` in this folder, then visit http://127.0.0.1:4173. The server bin
 
 You can also open `dist/index.html` directly. Use a consistent browser and address so saved notes remain available. Browser storage can be cleared; use **Export library** to keep a JSON backup.
 
-The main view is a visual shelf grouped by added year. Click a narrow spine for the real published cover and added date. On the local preview, the searchable reading journal is collapsed beneath the shelf and the book dialog can edit status, format, and notes. The published site shows the shelf and book details without the journal or editing controls. Local edits stay in that browser’s storage and can be downloaded with **Export library**.
+The main view has a current-decade shelf on top and an older-decade shelf below, with books grouped by added year inside each shelf. Click a narrow spine for the real published cover and added date. On the local preview, the searchable reading journal is collapsed beneath the shelf and the book dialog can edit status, format, and notes. The published site shows the shelf and book details without the journal or editing controls. Local edits stay in that browser’s storage and can be downloaded with **Export library**.
 
 There are no external fonts, image requests, analytics, cloud storage, or account connections. Publisher links open only when clicked. Spines are cover-based reconstructions made with the built-in image generation tool using the official covers as references; they are not verified physical-spine scans. The journal and detail dialog display actual published cover images from publishers, ebook retailers, or Audible, stored locally. New Audible spines crop their real cover images and show titles in separate tooltips. Cover editions are reference editions and may differ from your Kindle or Audible editions. Books without a cover asset and source are excluded from display. See dist/assets/SOURCES.md for provenance. Book subtitles and publisher links were checked against the official publisher pages.
 

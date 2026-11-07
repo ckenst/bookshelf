@@ -2600,6 +2600,17 @@
   function shelfBooks(books) {
     return books.filter(b => typeof b.cover === 'string' && /^assets\/[a-z0-9-]+-cover\.jpg$/.test(b.cover) && typeof b.coverSource === 'string' && b.coverSource.startsWith('https://'));
   }
+  function groupBooksByDecade(books) {
+    const knownDecades = books.filter(book => /^\d{4}/.test(book.addedAt || '')).map(book => Math.floor(Number(book.addedAt.slice(0, 4)) / 10) * 10);
+    const oldestDecade = Math.min(...knownDecades);
+    const groups = new Map();
+    for (const book of books) {
+      const decade = /^\d{4}/.test(book.addedAt || '') ? Math.floor(Number(book.addedAt.slice(0, 4)) / 10) * 10 : oldestDecade;
+      if (!groups.has(decade)) groups.set(decade, []);
+      groups.get(decade).push(book);
+    }
+    return [...groups.entries()].sort(([a], [b]) => b - a).map(([decade, decadeBooks]) => ({ decade, label: `${decade}s`, books: decadeBooks }));
+  }
   function shelfDimensions(book) {
     const pages = Number.isFinite(book.pages) && book.pages > 0 ? book.pages : 320;
     let hash = 0;
@@ -2614,6 +2625,9 @@
   function yearScrollTarget({ scrollLeft, viewportLeft, viewportWidth, groupLeft, groupWidth, maxScroll }) {
     return Math.max(0, Math.min(maxScroll, scrollLeft + groupLeft - viewportLeft - (viewportWidth - groupWidth) / 2));
   }
+  function latestShelfScrollTarget({ scrollWidth, clientWidth }) {
+    return Math.max(0, scrollWidth - clientWidth);
+  }
   function formatBookDate(value) {
     const monthOnly = /^\d{4}-\d{2}$/.test(value);
     const date = new Date(value + (monthOnly ? '-01' : '') + 'T12:00:00Z');
@@ -2625,7 +2639,7 @@
     if (includeCompletion && book.finishedAt) lines.push('Finished ' + formatBookDate(book.finishedAt));
     return lines.join(' · ');
   }
-  const api = { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, shelfBooks, shelfDimensions, isLocalLibrary, yearScrollTarget, formatBookDate, formatBookHistory };
+  const api = { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, shelfBooks, groupBooksByDecade, shelfDimensions, isLocalLibrary, yearScrollTarget, latestShelfScrollTarget, formatBookDate, formatBookHistory };
   if (typeof module !== 'undefined') module.exports = api;
   else globalThis.BookshelfModel = api;
 })();
