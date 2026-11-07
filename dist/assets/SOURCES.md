@@ -37,7 +37,7 @@ library-spines-four.png is a built-in ImageGen reconstruction using those four r
 
 ## Audible history covers (November 2026)
 
-The 37 retained Audible additions use real cover images displayed on the signed-in Audible listen and purchase history pages. Chrome saved those pages with their image assets. Every local image's original Audible image URL is recorded in `cover-sources.json`. These are audiobook covers and may differ from Kindle or print editions. Their narrow shelf spines crop the saved cover image and add HTML title and author labels; they are not physical spine scans. The cover saved in each book's detail view is the intact image.
+The 37 retained Audible additions use real cover images displayed on the signed-in Audible listen and purchase history pages. Chrome saved those pages with their image assets. Every local image's original Audible image URL is recorded in `cover-sources.json`. These are audiobook covers and may differ from Kindle or print editions. Their narrow shelf spines crop the saved cover image, with title and author tooltips shown separately; they are not physical spine scans. The cover saved in each book's detail view is the intact image.
 
 ## High Growth Handbook
 

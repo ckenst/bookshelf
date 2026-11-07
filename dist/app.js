@@ -4,11 +4,14 @@
   const localMode = isLocalLibrary(location);
   document.documentElement.classList.toggle('local-library', localMode);
   const $ = id => document.getElementById(id);
+  const tooltip = $('spine-tooltip');
+  const shelfRoom = document.querySelector('.shelf-room');
   const labels = { reading: 'Reading', finishing: 'Nearly finished', paused: 'Paused', finished: 'Finished', 'want-to-read': 'Want to read', unknown: 'Unread', unread: 'Unread', unfinished: 'Not finished' };
   let books = mergeLibrary([]);
   let activeId;
   let activeYear = 'all';
   let toastTimer;
+  let tooltipTarget;
   function notify(message) { $('toast').textContent = message; $('toast').classList.add('visible'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('visible'), 4000); }
   if (localMode) {
     try { const saved = localStorage.getItem(key); if (saved) books = mergeLibrary(parseLibrary(saved)); localStorage.setItem(key, JSON.stringify(books)); }
@@ -16,6 +19,18 @@
     $('footer-note').textContent = 'Edits and notes are saved only in this browser.';
   }
   function element(tag, className, text) { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; }
+  function hideTooltip() { tooltip.hidden = true; tooltipTarget = undefined; }
+  function positionTooltip(spine) {
+    const spineRect = spine.getBoundingClientRect(), roomRect = shelfRoom.getBoundingClientRect();
+    tooltip.style.left = Math.max(12, Math.min(shelfRoom.clientWidth - tooltip.offsetWidth - 12, spineRect.left - roomRect.left + spineRect.width / 2 - tooltip.offsetWidth / 2)) + 'px';
+    tooltip.style.top = Math.max(8, spineRect.top - roomRect.top - tooltip.offsetHeight - 12) + 'px';
+  }
+  function showTooltip(spine, book) {
+    tooltipTarget = spine;
+    tooltip.replaceChildren(element('span', 'tooltip-title', book.title), element('span', 'tooltip-author', book.authors));
+    tooltip.hidden = false;
+    positionTooltip(spine);
+  }
   function coverImage(b, className) {
     const image = element('img', className);
     image.src = b.cover;
@@ -43,7 +58,7 @@
     $('detail-subtitle').textContent = book.subtitle || '';
     $('detail-cover').replaceChildren(coverImage(book, 'detail-cover-image'));
     $('detail-history').textContent = historyText(book, localMode) || 'No added date supplied.';
-    $('art-note').textContent = 'Published cover shown above. Cover edition may differ from your digital edition. Spine artwork is reconstructed from the real cover, with readable labels on hover or keyboard focus; width and height are visual estimates' + (book.pages ? ' informed by a ' + book.pages + '-page print edition.' : ' using a standard page-count baseline with stable visual variation.');
+    $('art-note').textContent = 'Published cover shown above. Cover edition may differ from your digital edition. Spine artwork is reconstructed from the real cover, with a title tooltip on hover or keyboard focus; width and height are visual estimates' + (book.pages ? ' informed by a ' + book.pages + '-page print edition.' : ' using a standard page-count baseline with stable visual variation.');
     if (localMode) { $('edit-status').value = book.status; $('edit-format').value = book.format; $('edit-notes').value = book.notes; }
     const source = seedBooks.find(b => b.id === id)?.source;
     $('publisher-link').hidden = !source; if (source) $('publisher-link').href = source;
@@ -54,7 +69,7 @@
     const displayBooks = allDisplayBooks;
     $('book-count').textContent = `${allDisplayBooks.length} books`;
     $('shelf-heading').textContent = activeYear === 'all' ? 'The collection' : activeYear === 'unknown' ? 'Added date unknown' : 'Added in ' + activeYear;
-    $('spines').replaceChildren(); $('year-nav').replaceChildren();
+    hideTooltip(); $('spines').replaceChildren(); $('year-nav').replaceChildren();
     const groups = new Map();
     for (const b of [...displayBooks].sort((a, b) => (a.addedAt || '9999').localeCompare(b.addedAt || '9999'))) {
       const year = b.addedAt ? b.addedAt.slice(0, 4) : 'Date unknown';
@@ -70,28 +85,20 @@
         const spine = element('button', b.spineAtlas ? 'spine' : 'spine imported');
         const dims = shelfDimensions(b);
         spine.type = 'button'; spine.setAttribute('aria-label', `${b.title} by ${b.authors}${localMode ? ', ' + labels[b.status] : ''}`);
-        spine.title = `${b.title} — click for cover and details`;
         spine.style.width = dims.width + 'px'; spine.style.height = dims.height + 'px';
         const texture = element('span', 'spine-art');
         texture.setAttribute('aria-hidden', 'true');
-        // Cover-derived spine artwork stays visible; crisp labels appear on hover or focus.
+        // Cover-derived artwork stays visible; the title is shown in a separate tooltip.
         texture.style.backgroundImage = `url('${b.spineAtlas || b.cover}')`;
         texture.style.backgroundSize = b.spineAtlas ? `${b.spineCount * 100}% 100%` : 'auto 100%';
         texture.style.backgroundPosition = b.spineAtlas ? `${b.spineIndex / (b.spineCount - 1) * 100}% top` : 'center';
-        const palettes = {
-          'vibe-coding':['#09150b','#c5ff92'], protocols:['#faf7ef','#008db8'],
-          kissinger:['#392116','#fff6e9'], titan:['#8da997','#13251a'],
-          'the-nvidia-way':['#0756a1','#ffffff'], breakneck:['#74796d','#ffffff'],
-          'the-comfort-crisis':['#fffefa','#171d1a'], 'engineering-management':['#426084','#f7c283'],
-          'the-goal':['#214f70','#ffffff'], 'elon-musk':['#0b1017','#ffffff'], wool:['#5b7a76','#ffffff'], shift:['#205f8b','#ffffff'], dust:['#aa631a','#fff5d7']
-        };
-        const [paper, ink] = palettes[b.id] || ['#f3efe7','#2b3029'];
-        spine.style.setProperty('--spine-paper', paper); spine.style.setProperty('--spine-ink', ink);
-        const copy = element('span', 'spine-copy');
-        copy.setAttribute('aria-hidden', 'true');
-        copy.append(element('span', 'spine-title' + (b.title.length > 30 ? ' long-title' : ''), b.title), element('span', 'spine-author', b.authors));
-        spine.append(texture, copy);
-        spine.addEventListener('click', () => openBook(b.id)); bookRow.append(spine);
+        spine.append(texture);
+        spine.addEventListener('pointerenter', event => { if (event.pointerType !== 'touch') showTooltip(spine, b); });
+        spine.addEventListener('pointerleave', hideTooltip);
+        spine.addEventListener('focus', () => showTooltip(spine, b));
+        spine.addEventListener('blur', hideTooltip);
+        spine.addEventListener('click', () => { hideTooltip(); openBook(b.id); });
+        bookRow.append(spine);
       }
       group.append(bookRow, element('h3', 'year-caption', year)); $('spines').append(group);
     }
@@ -123,7 +130,7 @@
     }
   }
   function selectYear(year, instant = false) {
-    activeYear = year;
+    hideTooltip(); activeYear = year;
     const groups = [...$('spines').children];
     const scroller = document.querySelector('.shelf-content');
     $('spines').classList.toggle('has-selection', year !== 'all');
@@ -139,6 +146,7 @@
   }
   const scroller = document.querySelector('.shelf-content');
   let drag = null, suppressClick = false;
+  scroller.addEventListener('scroll', () => { if (!tooltip.hidden && tooltipTarget?.isConnected) positionTooltip(tooltipTarget); }, { passive: true });
   scroller.addEventListener('pointerdown', event => {
     if (event.button !== 0 || event.pointerType === 'touch') return;
     drag = {x:event.clientX, scroll:scroller.scrollLeft, moved:false}; suppressClick = false;

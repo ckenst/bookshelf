@@ -14,7 +14,7 @@ You can also open `dist/index.html` directly. Use a consistent browser and addre
 
 The main view is a visual shelf grouped by added year. Click a narrow spine for the real published cover and added date. On the local preview, the searchable reading journal is collapsed beneath the shelf and the book dialog can edit status, format, and notes. The published site shows the shelf and book details without the journal or editing controls. Local edits stay in that browser’s storage and can be downloaded with **Export library**.
 
-There are no external fonts, image requests, analytics, cloud storage, or account connections. Publisher links open only when clicked. Spines are cover-based reconstructions made with the built-in image generation tool using the official covers as references; they are not verified physical-spine scans. The journal and detail dialog display actual published cover images from publishers, ebook retailers, or Audible, stored locally. New Audible spines crop their real cover images and use HTML lettering. Cover editions are reference editions and may differ from your Kindle or Audible editions. Books without a cover asset and source are excluded from display. See dist/assets/SOURCES.md for provenance. Book subtitles and publisher links were checked against the official publisher pages.
+There are no external fonts, image requests, analytics, cloud storage, or account connections. Publisher links open only when clicked. Spines are cover-based reconstructions made with the built-in image generation tool using the official covers as references; they are not verified physical-spine scans. The journal and detail dialog display actual published cover images from publishers, ebook retailers, or Audible, stored locally. New Audible spines crop their real cover images and show titles in separate tooltips. Cover editions are reference editions and may differ from your Kindle or Audible editions. Books without a cover asset and source are excluded from display. See dist/assets/SOURCES.md for provenance. Book subtitles and publisher links were checked against the official publisher pages.
 
 ## Checks
 
@@ -46,7 +46,7 @@ The first shelf records were based on details supplied November 5, 2026; that re
 
 ## Spine sizing and navigation
 
-Spine lettering is native HTML text, never squeezed bitmap text. Real front covers are cropped without distortion; readable title and author labels appear on hover or keyboard focus. The click-through cover remains intact. Author credits use the complete published names.
+Real front covers are cropped without distortion for the narrow spines. Hovering or focusing a spine shows its title and full author names in a separate tooltip; selecting it opens the intact published cover. The artwork is not a verified physical spine scan.
 
 Spine width is a visual estimate: `round(25 + pages * 0.035)` CSS pixels, limited to 38–64 pixels, with at least 46 pixels for long titles. Height is estimated from the square root of the reference page count plus a stable variation by book, limited to 224–304 pixels. Unknown page counts use a 320-page baseline. The sizes add visual variety; they are not physical measurements of Kindle or Audible editions.
 

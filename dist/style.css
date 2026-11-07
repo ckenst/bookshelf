@@ -7,13 +7,9 @@ dialog{border:1px solid #d6d8ca;border-radius:6px;background:var(--paper);color:
 @media(max-width:600px){.masthead{padding:22px 20px 17px}.masthead h1{font-size:25px}.masthead p{font-size:11px;max-width:240px;line-height:1.6}.private{font-size:8px;letter-spacing:.7px}.section-head{padding:0 20px 12px}.shelf-room{padding:25px 0 35px}.shelf-content{padding:10px 20px 0}.spines{gap:16px}.wood-shelf{margin:0 12px}.year-nav{padding-left:13px}.shelf-help{margin-left:24px}.journal-disclosure{margin-left:20px;margin-right:20px}.search input{width:140px}.filter-label{font-size:0;gap:0}.filter-label select{font-size:11px;max-width:140px}.journal-row{gap:12px;grid-template-columns:31px 1fr}.journal-row>.status{grid-column:2;justify-self:start}.row-title{font-size:18px}footer{padding:18px 20px;flex-direction:column;gap:8px}dialog{padding:21px}.detail-cover-image{width:108px;max-height:180px}#detail-cover{margin-right:20px}dialog h2{font-size:26px}.detail-authors{font-size:11px}.detail-history{clear:both}.dialog-bottom{gap:15px}.fields{gap:10px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 
-/* Keep text crisp at every shelf width; never compress lettering in an image. */
+/* Keep the narrow cover-derived spines at their natural display width. */
 .spine-art{background-size:cover;background-position:center;opacity:.12}
-.spine{background:var(--spine-paper);color:var(--spine-ink)}
-.spine-copy{position:absolute;inset:0;color:var(--spine-ink)}
-.spine-title{position:absolute;left:6px;right:18px;top:14px;bottom:14px;writing-mode:vertical-rl;text-orientation:mixed;font-family:Georgia,'Times New Roman',serif;font-size:17px;font-weight:600;line-height:1.1;letter-spacing:.15px;text-align:left;overflow-wrap:normal}
-.spine-title.long-title{font-size:12px;line-height:1.1;left:4px;right:14px}
-.spine-author{position:absolute;right:4px;top:14px;bottom:14px;writing-mode:vertical-rl;font-size:9px;font-weight:500;line-height:1;letter-spacing:.1px;text-align:left;white-space:nowrap}
+.spine{background:#d8d0c2}
 .year-link[aria-pressed="true"]{background:#344f3d;color:#fff}
 .year-nav{flex-wrap:wrap}
 .status.unread{background:#e7e6e1;color:#72766c}
@@ -28,17 +24,17 @@ dialog{border:1px solid #d6d8ca;border-radius:6px;background:var(--paper);color:
 .year-group.is-selected .spine{box-shadow:0 0 0 1px #bda57e,2px 2px 5px #0002}
 @media(prefers-reduced-motion:reduce){.spine{transition:none}}
 
-/* Keep actual cover imagery visible; protect only the typeset labels. */
+/* Keep actual cover imagery visible. */
 .spine-art{opacity:1;background-size:cover;background-position:center}
-.spine-title{left:3px;right:15px;bottom:auto;height:max-content;max-height:226px;padding:4px 2px;background:color-mix(in srgb,var(--spine-paper) 94%,transparent);border-radius:1px}
-.spine-title.long-title{left:2px;right:13px;height:226px;max-height:226px;padding:3px 1px}
-.spine-author{right:1px;bottom:auto;height:max-content;max-height:226px;padding:4px 2px;background:color-mix(in srgb,var(--spine-paper) 94%,transparent);border-radius:1px}
 
-.spine-copy{opacity:0;transition:opacity .15s}
-.spine:hover .spine-copy,.spine:focus-visible .spine-copy{opacity:1}
 
-/* Imported spines show their cover crop at rest; readable labels appear on hover or focus like other spines. */
-.spine.imported .spine-title,.spine.imported .spine-author{background:color-mix(in srgb,var(--spine-paper) 97%,transparent)}
 
 /* Private journal and editing controls are shown only by the local preview. */
 html:not(.local-library) .journal-disclosure,html:not(.local-library) .edit-details,html:not(.local-library) .save-button{display:none}
+
+/* The title tooltip sits outside the scrolling row so it never covers a spine. */
+.shelf-room{position:relative}
+.spine-tooltip{position:absolute;z-index:5;pointer-events:none;max-width:min(250px,calc(100vw - 32px));padding:10px 13px;border-radius:4px;background:#263a30;color:#f8f5ed;box-shadow:0 5px 18px #14241b40;text-align:left}
+.spine-tooltip[hidden]{display:none}
+.tooltip-title{display:block;font:16px/1.25 var(--serif)}
+.tooltip-author{display:block;margin-top:4px;font-size:10px;line-height:1.35;color:#d8e0d6}
