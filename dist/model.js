@@ -2563,17 +2563,23 @@
     return books.filter(b => `${b.title} ${b.authors}`.toLowerCase().includes(search) &&
       (status === 'all' || (status === 'reading' ? ['reading', 'finishing'].includes(b.status) : b.status === status)));
   }
+  function isValidSource(value) {
+    if (value === '') return true;
+    if (typeof value !== 'string' || value.length > 2048) return false;
+    try { return new URL(value).protocol === 'https:'; } catch { return false; }
+  }
   function updateBook(books, id, patch) {
     if (patch.status !== undefined && !statuses.includes(patch.status)) throw Error('Unknown reading status');
     if (patch.format !== undefined && !formats.includes(patch.format)) throw Error('Unknown book format');
-    return books.map(b => b.id !== id ? b : { ...b, status: patch.status ?? b.status, format: patch.format ?? b.format, notes: typeof patch.notes === 'string' ? patch.notes : b.notes });
+    if (patch.source !== undefined && !isValidSource(patch.source.trim())) throw Error('Publisher details must use HTTPS');
+    return books.map(b => b.id !== id ? b : { ...b, status: patch.status ?? b.status, format: patch.format ?? b.format, notes: typeof patch.notes === 'string' ? patch.notes : b.notes, source: patch.source === undefined ? b.source : patch.source.trim() });
   }
   function parseLibrary(text) {
     const books = JSON.parse(text);
     const ids = new Set();
     if (!Array.isArray(books) || !books.length) throw Error('Expected a library of books');
     for (const b of books) {
-      if (!b || typeof b.id !== 'string' || ids.has(b.id) || typeof b.title !== 'string' || typeof b.authors !== 'string' || !statuses.includes(b.status) || !formats.includes(b.format) || typeof b.notes !== 'string') throw Error('Invalid library record');
+      if (!b || typeof b.id !== 'string' || ids.has(b.id) || typeof b.title !== 'string' || typeof b.authors !== 'string' || !statuses.includes(b.status) || !formats.includes(b.format) || typeof b.notes !== 'string' || (b.source !== undefined && !isValidSource(b.source))) throw Error('Invalid library record');
       ids.add(b.id);
     }
     return books;
@@ -2589,13 +2595,61 @@
       if (seed.addedAt) book.addedAt = seed.addedAt;
       if (seed.finishedAt) book.finishedAt = seed.finishedAt;
       if (seed.audibleSource) book.audibleSource = seed.audibleSource;
-      if (seed.cover) { book.cover = seed.cover; book.coverSource = seed.coverSource; if (seed.source) book.source = seed.source; }
+      if (seed.cover) { book.cover = seed.cover; book.coverSource = seed.coverSource; }
       if (seed.audibleObservation) book.audibleObservation = { ...seed.audibleObservation };
       if (seed.listeningEvents) book.listeningEvents = seed.listeningEvents.map(e => ({ ...e }));
       if (old.format === 'unspecified' && seed.format !== 'unspecified') book.format = seed.format;
       return book;
     });
     return merged.concat(saved.filter(b => !removedBookIds.has(b.id) && !seedBooks.some(seed => seed.id === b.id)).map(b => b.status === 'unknown' ? {...b, status:'unread'} : b));
+  }
+  function mergeBrowserEdits(serverBooks, browserBooks) {
+    const browserById = new Map(browserBooks.map(book => [book.id, book]));
+    const seedById = new Map(seedBooks.map(book => [book.id, book]));
+    const merged = serverBooks.map(serverBook => {
+      const browserBook = browserById.get(serverBook.id), seedBook = seedById.get(serverBook.id);
+      if (!browserBook) return serverBook;
+      return {
+        ...serverBook,
+        notes: browserBook.notes.trim() ? browserBook.notes : serverBook.notes,
+        status: !seedBook || browserBook.status !== seedBook.status ? browserBook.status : serverBook.status,
+        format: !seedBook || browserBook.format !== seedBook.format ? browserBook.format : serverBook.format,
+        source: !seedBook || browserBook.source !== seedBook.source ? browserBook.source : serverBook.source
+      };
+    });
+    const serverIds = new Set(serverBooks.map(book => book.id));
+    return merged.concat(browserBooks.filter(book => !serverIds.has(book.id)));
+  }
+  function parseLibraryEdits(text) {
+    const edits = JSON.parse(text), ids = new Set(), seedIds = new Set(seedBooks.map(book => book.id));
+    if (!Array.isArray(edits)) throw Error('Expected library edits');
+    for (const edit of edits) {
+      const keys = edit && Object.keys(edit);
+      if (!edit || typeof edit.id !== 'string' || !seedIds.has(edit.id) || ids.has(edit.id) || keys.some(key => !['id','status','format','notes','source'].includes(key)) || keys.length < 2) throw Error('Invalid library edit');
+      if (edit.status !== undefined && !statuses.includes(edit.status)) throw Error('Invalid library edit');
+      if (edit.format !== undefined && !formats.includes(edit.format)) throw Error('Invalid library edit');
+      if (edit.notes !== undefined && (typeof edit.notes !== 'string' || edit.notes.length > 20000)) throw Error('Invalid library edit');
+      if (edit.source !== undefined && !isValidSource(edit.source)) throw Error('Invalid library edit');
+      ids.add(edit.id);
+    }
+    return edits;
+  }
+  function extractLibraryEdits(books) {
+    const seedById = new Map(seedBooks.map(book => [book.id, book]));
+    return books.flatMap(book => {
+      const seed = seedById.get(book.id);
+      if (!seed) return [];
+      const edit = { id:book.id };
+      if (book.status !== seed.status) edit.status = book.status;
+      if (book.format !== seed.format) edit.format = book.format;
+      if (book.notes !== seed.notes) edit.notes = book.notes;
+      if ((book.source || '') !== (seed.source || '')) edit.source = book.source || '';
+      return Object.keys(edit).length > 1 ? [edit] : [];
+    });
+  }
+  function applyLibraryEdits(books, edits) {
+    const byId = new Map(edits.map(edit => [edit.id, edit]));
+    return books.map(book => byId.has(book.id) ? { ...book, ...byId.get(book.id) } : book);
   }
   function shelfBooks(books) {
     return books.filter(b => typeof b.cover === 'string' && /^assets\/[a-z0-9-]+-cover\.jpg$/.test(b.cover) && typeof b.coverSource === 'string' && b.coverSource.startsWith('https://'));
@@ -2639,7 +2693,7 @@
     if (includeCompletion && book.finishedAt) lines.push('Finished ' + formatBookDate(book.finishedAt));
     return lines.join(' · ');
   }
-  const api = { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, shelfBooks, groupBooksByDecade, shelfDimensions, isLocalLibrary, yearScrollTarget, latestShelfScrollTarget, formatBookDate, formatBookHistory };
+  const api = { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, mergeBrowserEdits, parseLibraryEdits, extractLibraryEdits, applyLibraryEdits, shelfBooks, groupBooksByDecade, shelfDimensions, isLocalLibrary, yearScrollTarget, latestShelfScrollTarget, formatBookDate, formatBookHistory };
   if (typeof module !== 'undefined') module.exports = api;
   else globalThis.BookshelfModel = api;
 })();

@@ -1,6 +1,7 @@
 (() => {
-  const { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, shelfBooks, groupBooksByDecade, shelfDimensions, isLocalLibrary, yearScrollTarget, latestShelfScrollTarget, formatBookHistory } = BookshelfModel;
+  const { filterBooks, updateBook, parseLibrary, mergeLibrary, mergeBrowserEdits, parseLibraryEdits, applyLibraryEdits, shelfBooks, groupBooksByDecade, shelfDimensions, isLocalLibrary, yearScrollTarget, latestShelfScrollTarget, formatBookHistory } = BookshelfModel;
   const key = 'personal-bookshelf-v1';
+  const fileSyncKey = 'personal-bookshelf-public-sync-v1';
   const localMode = isLocalLibrary(location);
   document.documentElement.classList.toggle('local-library', localMode);
   const $ = id => document.getElementById(id);
@@ -13,10 +14,52 @@
   let toastTimer;
   let tooltipTarget;
   function notify(message) { $('toast').textContent = message; $('toast').classList.add('visible'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('visible'), 4000); }
-  if (localMode) {
-    try { const saved = localStorage.getItem(key); if (saved) books = mergeLibrary(parseLibrary(saved)); localStorage.setItem(key, JSON.stringify(books)); }
-    catch { notify('Saved library could not be loaded. The supplied library is shown.'); }
-    $('footer-note').textContent = 'Edits and notes are saved only in this browser.';
+  async function persistPublishedLibrary(nextBooks) {
+    const response = await fetch('/api/library', { method:'PUT', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ books:nextBooks }) });
+    if (!response.ok) throw Error('Published library save failed');
+  }
+  async function loadLocalLibrary() {
+    let browserBooks;
+    let hasFileSync = false;
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved) browserBooks = mergeLibrary(parseLibrary(saved));
+      hasFileSync = localStorage.getItem(fileSyncKey) === 'true';
+    } catch { notify('The browser copy could not be loaded. Checking the tracked edits file instead.'); }
+    try {
+      const response = await fetch('/api/library', { headers:{ Accept:'application/json' } });
+      if (!response.ok) throw Error('Published library load failed');
+      const payload = await response.json();
+      if (!payload || !Array.isArray(payload.books)) throw Error('Invalid published library response');
+      if (payload.books.length) {
+        books = mergeLibrary(parseLibrary(JSON.stringify(payload.books)));
+        if (browserBooks && !hasFileSync) {
+          books = mergeBrowserEdits(books, browserBooks);
+          await persistPublishedLibrary(books);
+        }
+      }
+      else {
+        if (browserBooks) books = browserBooks;
+        await persistPublishedLibrary(books);
+      }
+      localStorage.setItem(key, JSON.stringify(books));
+      localStorage.setItem(fileSyncKey, 'true');
+      $('footer-note').textContent = 'Edits are saved to dist/library-edits.json; commit and push to publish them.';
+    } catch {
+      if (browserBooks) books = browserBooks;
+      try { localStorage.setItem(key, JSON.stringify(books)); } catch {}
+      $('footer-note').textContent = 'Published edits file unavailable; edits are saved only in this browser.';
+      notify('Published edits file is unavailable. Your browser copy is still in use.');
+    }
+    render();
+  }
+  async function loadPublishedLibrary() {
+    try {
+      const response = await fetch('library-edits.json', { headers:{ Accept:'application/json' } });
+      if (!response.ok) throw Error('Published edits load failed');
+      books = applyLibraryEdits(books, parseLibraryEdits(await response.text()));
+    } catch {}
+    render();
   }
   function element(tag, className, text) { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; }
   function hideTooltip() { tooltip.hidden = true; tooltipTarget = undefined; }
@@ -43,9 +86,10 @@
     $('detail-subtitle').textContent = book.subtitle || '';
     $('detail-cover').replaceChildren(coverImage(book, 'detail-cover-image'));
     $('detail-history').textContent = formatBookHistory(book, localMode) || 'No added date supplied.';
-    $('art-note').textContent = 'Published cover shown above. Cover edition may differ from your digital edition. Spine artwork is reconstructed from the real cover, with a title tooltip on hover or keyboard focus; width and height are visual estimates' + (book.pages ? ' informed by a ' + book.pages + '-page print edition.' : ' using a standard page-count baseline with stable visual variation.');
-    if (localMode) { $('edit-status').value = book.status; $('edit-format').value = book.format; $('edit-notes').value = book.notes; }
-    const source = seedBooks.find(b => b.id === id)?.source;
+    $('detail-status').className = `status detail-status ${book.status}`; $('detail-status').textContent = labels[book.status];
+    $('detail-notes-section').hidden = !book.notes.trim(); $('detail-notes').textContent = book.notes;
+    if (localMode) { $('edit-status').value = book.status; $('edit-format').value = book.format; $('edit-notes').value = book.notes; $('edit-source').value = book.source || ''; }
+    const source = book.source;
     $('publisher-link').hidden = !source; if (source) $('publisher-link').href = source;
     $('book-dialog').showModal();
   }
@@ -169,10 +213,18 @@
   $('close-dialog').addEventListener('click', () => $('book-dialog').close());
   $('book-dialog').addEventListener('click', e => { if (e.target === $('book-dialog')) { const r = e.target.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) e.target.close(); } });
   if (localMode) {
-  $('book-form').addEventListener('submit', e => {
-    e.preventDefault(); const next = updateBook(books, activeId, { status: $('edit-status').value, format: $('edit-format').value, notes: $('edit-notes').value });
-    try { localStorage.setItem(key, JSON.stringify(next)); books = next; $('book-dialog').close(); render(); notify('Saved to your bookshelf.'); }
-    catch { notify('Your browser could not save. Keep this window open and export your library.'); books = next; render(); }
+  $('book-form').addEventListener('submit', async e => {
+    e.preventDefault(); const next = updateBook(books, activeId, { status: $('edit-status').value, format: $('edit-format').value, notes: $('edit-notes').value, source: $('edit-source').value });
+    books = next; $('save-book').disabled = true;
+    let browserSaved = true;
+    try { localStorage.setItem(key, JSON.stringify(next)); } catch { browserSaved = false; }
+    try {
+      await persistPublishedLibrary(next);
+      $('book-dialog').close(); render(); notify('Saved to dist/library-edits.json. Commit and push to publish.');
+    } catch {
+      $('book-dialog').close(); render();
+      notify(browserSaved ? 'Saved in this browser, but the tracked edits file could not be updated.' : 'Save failed. Keep this window open and export your library.');
+    } finally { $('save-book').disabled = false; }
   });
   $('search').addEventListener('input', render); $('filter').addEventListener('change', render);
   $('export').addEventListener('click', () => {
@@ -180,5 +232,5 @@
     const link = element('a'); link.href = url; link.download = 'my-bookshelf.json'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); notify('Library exported.');
   });
   }
-  render();
+  if (localMode) loadLocalLibrary(); else loadPublishedLibrary();
 })();

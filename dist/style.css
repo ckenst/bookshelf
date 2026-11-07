@@ -48,3 +48,5 @@ html:not(.local-library) .journal-disclosure,html:not(.local-library) .edit-deta
 .decade-shelf .spines{padding-top:14px}
 .decade-shelf .wood-shelf{height:12px}
 @media(max-width:600px){.shelf-room{padding:20px 0 28px}.shelf-stack{gap:28px}.decade-label{left:20px}.decade-shelf .shelf-content{padding-top:10px}.decade-shelf .spines{padding-left:20px;padding-right:20px}}
+
+.detail-status-line{margin:0 0 20px}.detail-notes{clear:both;border-top:1px solid var(--line);padding:18px 0 16px}.detail-notes[hidden]{display:none}.detail-notes h3{margin:0 0 8px;font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:#75816e}.detail-notes p{margin:0;font:16px/1.6 var(--serif);white-space:pre-wrap}.source-label{margin-top:18px;font-size:11px;display:flex;flex-direction:column;gap:9px}#edit-source{width:100%;border:1px solid #d8dbcf;border-radius:4px;background:#faf8f2;padding:10px;color:var(--ink);font-size:12px}.save-button:disabled{opacity:.55;cursor:wait}

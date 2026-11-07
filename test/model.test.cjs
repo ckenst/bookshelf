@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, groupBooksByDecade, latestShelfScrollTarget } = require('../dist/model.js');
+const { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, mergeBrowserEdits, extractLibraryEdits, parseLibraryEdits, applyLibraryEdits, groupBooksByDecade, latestShelfScrollTarget } = require('../dist/model.js');
 test('all 175 distinct books are retained and Vibe Coding is deduplicated', () => {
  assert.equal(seedBooks.length, 175);
  assert.equal(seedBooks.filter(b => b.id === 'vibe-coding').length, 1);
@@ -69,6 +69,17 @@ test('new history appears for existing browser libraries without losing edits', 
  assert.equal(merged[0].listeningEvents[0].date, '2026-09-27');
  assert.deepEqual(mergeLibrary(merged), merged);
 });
+test('first tracked-file sync preserves browser notes and deliberate status changes', () => {
+ const server = mergeLibrary([]);
+ const browser = mergeLibrary([]);
+ browser[0] = { ...browser[0], notes:'Browser note', status:'finished', format:'both' };
+ server[1] = { ...server[1], notes:'File note' };
+ const merged = mergeBrowserEdits(server, browser);
+ assert.equal(merged[0].notes, 'Browser note');
+ assert.equal(merged[0].status, 'finished');
+ assert.equal(merged[0].format, 'both');
+ assert.equal(merged[1].notes, 'File note');
+});
 test('search and status filters distinguish active, unread and finished', () => {
  assert.equal(filterBooks(seedBooks, 'YEGGE', 'reading').length, 1);
  assert.equal(filterBooks(seedBooks, '', 'reading').length, 3);
@@ -77,11 +88,24 @@ test('search and status filters distinguish active, unread and finished', () => 
  assert.equal(filterBooks(seedBooks, '', 'finished')[0].id, 'the-goal');
 });
 test('edits preserve identity and history while rejecting invalid fields', () => {
- const updated = updateBook(seedBooks, 'vibe-coding', { status: 'finished', notes: 'Useful', id: 'wrong' });
+ const updated = updateBook(seedBooks, 'vibe-coding', { status: 'finished', notes: 'Useful', source:'https://www.amazon.com/example', id: 'wrong' });
  assert.equal(updated[0].id, 'vibe-coding'); assert.equal(updated[0].addedAt, '2026-06-25');
+ assert.equal(updated[0].source, 'https://www.amazon.com/example');
  assert.equal(seedBooks[0].status, 'finishing');
  assert.throws(() => updateBook(seedBooks, 'vibe-coding', { format: 'invalid' }));
  assert.throws(() => updateBook(seedBooks, 'vibe-coding', { status: 'invalid' }));
+ assert.throws(() => updateBook(seedBooks, 'vibe-coding', { source: 'javascript:alert(1)' }));
+});
+test('public edit overrides round-trip notes, status, format and HTTPS publisher links', () => {
+ const changed = updateBook(mergeLibrary([]), 'protocols', { status:'finished', format:'kindle', notes:'Public note', source:'https://www.amazon.com/protocols' });
+ const edits = extractLibraryEdits(changed);
+ assert.deepEqual(edits, [{ id:'protocols', status:'finished', format:'kindle', notes:'Public note', source:'https://www.amazon.com/protocols' }]);
+ const applied = applyLibraryEdits(mergeLibrary([]), parseLibraryEdits(JSON.stringify(edits)));
+ const protocols = applied.find(book => book.id === 'protocols');
+ assert.equal(protocols.status, 'finished'); assert.equal(protocols.format, 'kindle');
+ assert.equal(protocols.notes, 'Public note'); assert.equal(protocols.source, 'https://www.amazon.com/protocols');
+ assert.throws(() => parseLibraryEdits('[{"id":"protocols","source":"http://example.com"}]'));
+ assert.throws(() => parseLibraryEdits('[{"id":"protocols","notes":"ok","unexpected":true}]'));
 });
 test('saved libraries validate old and new records and reject duplicates', () => {
  assert.deepEqual(parseLibrary(JSON.stringify(seedBooks)), seedBooks);

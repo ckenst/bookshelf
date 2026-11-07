@@ -1,8 +1,9 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
-const { seedBooks, shelfBooks, shelfDimensions, isLocalLibrary } = require('../dist/model.js');
+const { seedBooks, shelfBooks, shelfDimensions, isLocalLibrary, mergeLibrary, updateBook } = require('../dist/model.js');
 test('every displayed book has a real cover file and a source', () => {
   assert.equal(shelfBooks(seedBooks).length, 175);
   for (const b of shelfBooks(seedBooks)) {
@@ -43,6 +44,60 @@ test('decade shelves use compact edge gutters so books fill the viewport', () =>
   const css = fs.readFileSync(path.join(__dirname, '../dist/style.css'), 'utf8');
   assert.doesNotMatch(css, /padding-(?:left|right):calc\(50vw/);
   assert.match(css, /\.spines\{padding-left:32px;padding-right:32px/);
+});
+
+test('book details show public notes and status with an editable HTTPS source field', () => {
+  const html = fs.readFileSync(path.join(__dirname, '../dist/index.html'), 'utf8');
+  const app = fs.readFileSync(path.join(__dirname, '../dist/app.js'), 'utf8');
+  assert.match(html, /id="detail-status"/);
+  assert.match(html, /id="detail-notes"/);
+  assert.match(html, /id="edit-source" type="url"/);
+  assert.doesNotMatch(html, /id="art-note"|Published cover shown above|visual estimates/);
+  assert.match(app, /library-edits\.json/);
+});
+
+test('local server exposes the tracked library persistence API', async () => {
+  const { server } = require('../server.cjs');
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const response = await fetch(`http://127.0.0.1:${server.address().port}/api/library`);
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type'), /^application\/json/);
+    assert.equal((await response.json()).books.length, seedBooks.length);
+    const published = await fetch(`http://127.0.0.1:${server.address().port}/library-edits.json`);
+    assert.equal(published.status, 200);
+    assert.ok(Array.isArray(await published.json()));
+  } finally {
+    await new Promise(resolve => server.close(resolve));
+  }
+});
+
+test('library API validates and atomically persists tracked public edits', async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'bookshelf-library-'));
+  const libraryPath = path.join(directory, 'library.json');
+  const { createServer } = require('../server.cjs');
+  const privateServer = createServer({ libraryPath });
+  await new Promise(resolve => privateServer.listen(0, '127.0.0.1', resolve));
+  const base = `http://127.0.0.1:${privateServer.address().port}`;
+  const books = updateBook(mergeLibrary([]), 'protocols', { status:'finished', format:'kindle', notes:'Public note', source:'https://www.amazon.com/protocols' });
+  const expectedEdits = [{ id:'protocols', status:'finished', format:'kindle', notes:'Public note', source:'https://www.amazon.com/protocols' }];
+  try {
+    const saved = await fetch(`${base}/api/library`, { method:'PUT', headers:{ 'Content-Type':'application/json', Origin:base }, body:JSON.stringify({ books }) });
+    assert.equal(saved.status, 200);
+    assert.deepEqual(await saved.json(), { saved:true });
+    assert.deepEqual(JSON.parse(fs.readFileSync(libraryPath, 'utf8')), expectedEdits);
+    assert.equal(fs.statSync(libraryPath).mode & 0o777, 0o644);
+    const loaded = await fetch(`${base}/api/library`);
+    const loadedBooks = (await loaded.json()).books;
+    assert.equal(loadedBooks.length, seedBooks.length);
+    assert.equal(loadedBooks.find(book => book.id === 'protocols').notes, 'Public note');
+    const rejected = await fetch(`${base}/api/library`, { method:'PUT', headers:{ 'Content-Type':'application/json', Origin:'https://example.com' }, body:JSON.stringify({ books:[] }) });
+    assert.equal(rejected.status, 403);
+    assert.deepEqual(JSON.parse(fs.readFileSync(libraryPath, 'utf8')), expectedEdits);
+  } finally {
+    await new Promise(resolve => privateServer.close(resolve));
+    fs.rmSync(directory, { recursive:true });
+  }
 });
 
 test('local server serves every catalog cover', async () => {
