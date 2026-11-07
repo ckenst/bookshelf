@@ -1,5 +1,5 @@
 (() => {
-  const { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, shelfBooks, shelfDimensions, isLocalLibrary, yearScrollTarget, formatBookDate } = BookshelfModel;
+  const { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, shelfBooks, shelfDimensions, isLocalLibrary, yearScrollTarget, formatBookHistory } = BookshelfModel;
   const key = 'personal-bookshelf-v1';
   const localMode = isLocalLibrary(location);
   document.documentElement.classList.toggle('local-library', localMode);
@@ -37,27 +37,12 @@
     image.alt = `${b.title} — published book cover`;
     return image;
   }
-  function dateLabel(value) {
-    return formatBookDate(value);
-  }
-  function historyText(book, includeReadingHistory = true) {
-    const lines = [];
-    if (book.addedAt) lines.push('Added ' + dateLabel(book.addedAt));
-    if (!includeReadingHistory) return lines.join(' · ');
-    if (book.finishedAt) lines.push('Finished ' + dateLabel(book.finishedAt));
-    for (const event of book.listeningEvents || []) lines.push('Listening entry ' + dateLabel(event.date) + ' (' + labels[event.status].toLowerCase() + ')');
-    if (book.audibleObservation) {
-      const observation = book.audibleObservation;
-      lines.push('Audible activity ' + dateLabel(observation.observedAt) + ' (' + observation.progressPercent + '%; ' + observation.displayedProgress.toLowerCase() + '). Activity date is not a completion date.');
-    }
-    return lines.join(' · ');
-  }
   function openBook(id) {
     const book = books.find(b => b.id === id); activeId = id;
     $('detail-title').textContent = book.title; $('detail-authors').textContent = book.authors;
     $('detail-subtitle').textContent = book.subtitle || '';
     $('detail-cover').replaceChildren(coverImage(book, 'detail-cover-image'));
-    $('detail-history').textContent = historyText(book, localMode) || 'No added date supplied.';
+    $('detail-history').textContent = formatBookHistory(book, localMode) || 'No added date supplied.';
     $('art-note').textContent = 'Published cover shown above. Cover edition may differ from your digital edition. Spine artwork is reconstructed from the real cover, with a title tooltip on hover or keyboard focus; width and height are visual estimates' + (book.pages ? ' informed by a ' + book.pages + '-page print edition.' : ' using a standard page-count baseline with stable visual variation.');
     if (localMode) { $('edit-status').value = book.status; $('edit-format').value = book.format; $('edit-notes').value = book.notes; }
     const source = seedBooks.find(b => b.id === id)?.source;
@@ -125,7 +110,7 @@
       const copy = element('div'); const title = element('button', 'row-title', b.title); title.type = 'button'; title.addEventListener('click', () => openBook(b.id));
       const format = { kindle: ' · Kindle', audible: ' · Audible', both: ' · Kindle & Audible', unspecified: '' }[b.format];
       copy.append(title, element('p', 'row-author', b.authors + format));
-      if (historyText(b)) copy.append(element('p', 'row-history', historyText(b)));
+      if (formatBookHistory(b)) copy.append(element('p', 'row-history', formatBookHistory(b)));
       row.append(cover, copy, element('span', `status ${b.status}`, labels[b.status])); $('journal').append(row);
     }
   }

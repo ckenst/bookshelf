@@ -125,3 +125,15 @@ test('sample-only titles are excluded and every reviewed book has its chosen sta
  assert.equal(updateBook(seedBooks,'the-profiteers',{status:'paused'}).find(b=>b.id==='the-profiteers').status,'paused');
  assert.deepEqual(parseLibrary(JSON.stringify(seedBooks)),seedBooks);
 });
+
+
+test('visible book history shows known completion dates without Audible activity', () => {
+ const { formatBookHistory } = require('../dist/model.js');
+ const completed = seedBooks.find(b => b.id === 'elon-musk');
+ assert.equal(formatBookHistory(completed), 'Added Aug 22, 2025 · Finished Dec 12, 2025');
+ assert.equal(formatBookHistory(completed, false), 'Added Aug 22, 2025');
+ const goal = seedBooks.find(b => b.id === 'the-goal');
+ assert.equal(formatBookHistory(goal), 'Added Jan 18, 2024');
+ assert.ok(goal.audibleObservation);
+ assert.ok(goal.listeningEvents?.length);
+});

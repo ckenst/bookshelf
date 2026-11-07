@@ -993,7 +993,13 @@
     const date = new Date(value + (monthOnly ? '-01' : '') + 'T12:00:00Z');
     return date.toLocaleDateString('en-US', { month:'short', ...(monthOnly ? {} : {day:'numeric'}), year:'numeric', timeZone:'UTC' });
   }
-  const api = { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, shelfBooks, shelfDimensions, isLocalLibrary, yearScrollTarget, formatBookDate };
+  function formatBookHistory(book, includeCompletion = true) {
+    const lines = [];
+    if (book.addedAt) lines.push('Added ' + formatBookDate(book.addedAt));
+    if (includeCompletion && book.finishedAt) lines.push('Finished ' + formatBookDate(book.finishedAt));
+    return lines.join(' · ');
+  }
+  const api = { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, shelfBooks, shelfDimensions, isLocalLibrary, yearScrollTarget, formatBookDate, formatBookHistory };
   if (typeof module !== 'undefined') module.exports = api;
   else globalThis.BookshelfModel = api;
 })();
