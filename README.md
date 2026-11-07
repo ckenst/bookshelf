@@ -1,6 +1,6 @@
 # My bookshelf
 
-A personal, visual bookshelf of 51 books from Kindle and Audible. Narrow spines are grouped by purchase year; selecting a book reveals its real published cover, reading status, and known dates. Purchase dates and listening observations are recorded separately, with no completion dates inferred from listening activity.
+A personal, visual bookshelf of 51 books from Kindle and Audible. Narrow spines are grouped by added year; selecting a book reveals its real published cover and added date. The local preview also has reading statuses, detailed history, and editing controls. Purchase dates and listening observations are recorded separately, with no completion dates inferred from listening activity.
 
 ## Inspiration
 
@@ -12,7 +12,7 @@ Run `npm start` in this folder, then visit http://127.0.0.1:4173. The server bin
 
 You can also open `dist/index.html` directly. Use a consistent browser and address so saved notes remain available. Browser storage can be cleared; use **Export library** to keep a JSON backup.
 
-The main view is a visual shelf grouped by purchase year. Click a narrow spine for the real published cover and history; expand the edit controls to update status, format, or notes. The searchable reading journal is collapsed beneath the shelf. Browser edits stay in that browser’s local storage and can be downloaded with **Export library**.
+The main view is a visual shelf grouped by added year. Click a narrow spine for the real published cover and added date. On the local preview, the searchable reading journal is collapsed beneath the shelf and the book dialog can edit status, format, and notes. The published site shows the shelf and book details without the journal or editing controls. Local edits stay in that browser’s storage and can be downloaded with **Export library**.
 
 There are no external fonts, image requests, analytics, cloud storage, or account connections. Publisher links open only when clicked. Spines are cover-based reconstructions made with the built-in image generation tool using the official covers as references; they are not verified physical-spine scans. The journal and detail dialog display actual published cover images from publishers, ebook retailers, or Audible, stored locally. New Audible spines crop their real cover images and use HTML lettering. Cover editions are reference editions and may differ from your Kindle or Audible editions. Books without a cover asset and source are excluded from display. See dist/assets/SOURCES.md for provenance. Book subtitles and publisher links were checked against the official publisher pages.
 
@@ -32,7 +32,7 @@ GitHub Pages is enabled with **GitHub Actions** as its source. Pushes to `main` 
 
 GitHub Actions deployments use the custom domain in Pages settings; a `CNAME` file in `dist/` is not required. DNS and certificate provisioning may take up to 24 hours.
 
-Published book records live in `dist/model.js`. To publish an update for everyone, edit those records and push to `main`. Edits made through the website remain in that visitor's browser; they do not update the repository or sync between devices. Existing browser edits can override later published status and notes on that browser. Export local notes before moving from localhost to the hosted address: browser storage does not transfer between addresses, and an import UI is not implemented.
+Published book records, including their seeded statuses, live in `dist/model.js`. The public page hides the journal and editing controls; the repository and JavaScript remain public. To publish a book update for everyone, edit those records and push to `main`. Edits made in the local preview remain in that browser; they do not update the repository or sync between devices. Existing local browser edits can override later published status and notes. Export local notes before changing browser addresses: browser storage does not transfer between addresses, and an import UI is not implemented.
 
 The deployed site and all files committed to a public repository are public. Keep personal exports and unpublished notes in the ignored folders. GitHub Pages logs visitors' IP addresses for security even though the app adds no analytics.
 
@@ -48,7 +48,7 @@ The first shelf records were based on details supplied November 5, 2026; that re
 
 Spine lettering is native HTML text, never squeezed bitmap text. Real front covers are cropped without distortion; readable title and author labels appear on hover or keyboard focus. The click-through cover remains intact. Author credits use the complete published names.
 
-Spine thickness is a visual estimate: `round(25 + pages * 0.035)` CSS pixels, limited to 38–64 pixels, with at least 46 pixels for long titles. Unknown page counts use a disclosed 320-page baseline. Heights stay at 260 pixels. These are readability-oriented display sizes, not physical measurements.
+Spine width is a visual estimate: `round(25 + pages * 0.035)` CSS pixels, limited to 38–64 pixels, with at least 46 pixels for long titles. Height is estimated from the square root of the reference page count plus a stable variation by book, limited to 224–304 pixels. Unknown page counts use a 320-page baseline. The sizes add visual variety; they are not physical measurements of Kindle or Audible editions.
 
 Year buttons slide the selected purchase-year group to the center and highlight it. Every book stays on the shelf; All books restores equal emphasis. The shelf also supports mouse dragging and native horizontal touch scrolling.
 

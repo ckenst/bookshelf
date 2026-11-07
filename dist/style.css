@@ -39,3 +39,6 @@ dialog{border:1px solid #d6d8ca;border-radius:6px;background:var(--paper);color:
 
 /* Imported spines show their cover crop at rest; readable labels appear on hover or focus like other spines. */
 .spine.imported .spine-title,.spine.imported .spine-author{background:color-mix(in srgb,var(--spine-paper) 97%,transparent)}
+
+/* Private journal and editing controls are shown only by the local preview. */
+html:not(.local-library) .journal-disclosure,html:not(.local-library) .edit-details,html:not(.local-library) .save-button{display:none}

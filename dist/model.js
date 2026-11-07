@@ -976,7 +976,14 @@
   }
   function shelfDimensions(book) {
     const pages = Number.isFinite(book.pages) && book.pages > 0 ? book.pages : 320;
-    return { width: Math.max(book.title?.length > 30 ? 46 : 38, Math.min(64, Math.round(25 + pages * 0.035))), height: 260, estimated: true };
+    let hash = 0;
+    for (const character of book.id || book.title || '') hash = (hash * 33 + character.charCodeAt(0)) % 65521;
+    const variation = hash % 37 - 18;
+    const height = Math.max(224, Math.min(304, Math.round(220 + Math.sqrt(pages) * 2.15) + variation));
+    return { width: Math.max(book.title?.length > 30 ? 46 : 38, Math.min(64, Math.round(25 + pages * 0.035))), height, estimated: true };
+  }
+  function isLocalLibrary(location) {
+    return location.protocol === 'file:' || ['localhost', '127.0.0.1', '[::1]', '::1'].includes(location.hostname);
   }
   function yearScrollTarget({ scrollLeft, viewportLeft, viewportWidth, groupLeft, groupWidth, maxScroll }) {
     return Math.max(0, Math.min(maxScroll, scrollLeft + groupLeft - viewportLeft - (viewportWidth - groupWidth) / 2));
@@ -986,7 +993,7 @@
     const date = new Date(value + (monthOnly ? '-01' : '') + 'T12:00:00Z');
     return date.toLocaleDateString('en-US', { month:'short', ...(monthOnly ? {} : {day:'numeric'}), year:'numeric', timeZone:'UTC' });
   }
-  const api = { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, shelfBooks, shelfDimensions, yearScrollTarget, formatBookDate };
+  const api = { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, shelfBooks, shelfDimensions, isLocalLibrary, yearScrollTarget, formatBookDate };
   if (typeof module !== 'undefined') module.exports = api;
   else globalThis.BookshelfModel = api;
 })();

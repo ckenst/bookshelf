@@ -1,6 +1,8 @@
 (() => {
-  const { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, shelfBooks, shelfDimensions, yearScrollTarget, formatBookDate } = BookshelfModel;
+  const { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, shelfBooks, shelfDimensions, isLocalLibrary, yearScrollTarget, formatBookDate } = BookshelfModel;
   const key = 'personal-bookshelf-v1';
+  const localMode = isLocalLibrary(location);
+  document.documentElement.classList.toggle('local-library', localMode);
   const $ = id => document.getElementById(id);
   const labels = { reading: 'Reading', finishing: 'Nearly finished', paused: 'Paused', finished: 'Finished', 'want-to-read': 'Want to read', unknown: 'Unread', unread: 'Unread', unfinished: 'Not finished' };
   let books = mergeLibrary([]);
@@ -8,8 +10,11 @@
   let activeYear = 'all';
   let toastTimer;
   function notify(message) { $('toast').textContent = message; $('toast').classList.add('visible'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('visible'), 4000); }
-  try { const saved = localStorage.getItem(key); if (saved) books = mergeLibrary(parseLibrary(saved)); localStorage.setItem(key, JSON.stringify(books)); }
-  catch { notify('Saved library could not be loaded. The supplied library is shown.'); }
+  if (localMode) {
+    try { const saved = localStorage.getItem(key); if (saved) books = mergeLibrary(parseLibrary(saved)); localStorage.setItem(key, JSON.stringify(books)); }
+    catch { notify('Saved library could not be loaded. The supplied library is shown.'); }
+    $('footer-note').textContent = 'Edits and notes are saved only in this browser.';
+  }
   function element(tag, className, text) { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; }
   function coverImage(b, className) {
     const image = element('img', className);
@@ -20,9 +25,10 @@
   function dateLabel(value) {
     return formatBookDate(value);
   }
-  function historyText(book) {
+  function historyText(book, includeReadingHistory = true) {
     const lines = [];
-    if (book.addedAt) lines.push('Purchased / added ' + dateLabel(book.addedAt));
+    if (book.addedAt) lines.push('Added ' + dateLabel(book.addedAt));
+    if (!includeReadingHistory) return lines.join(' · ');
     if (book.finishedAt) lines.push('Finished ' + dateLabel(book.finishedAt));
     for (const event of book.listeningEvents || []) lines.push('Listening entry ' + dateLabel(event.date) + ' (' + labels[event.status].toLowerCase() + ')');
     if (book.audibleObservation) {
@@ -36,9 +42,9 @@
     $('detail-title').textContent = book.title; $('detail-authors').textContent = book.authors;
     $('detail-subtitle').textContent = book.subtitle || '';
     $('detail-cover').replaceChildren(coverImage(book, 'detail-cover-image'));
-    $('detail-history').textContent = historyText(book) || 'No purchase or listening dates supplied.';
-    $('art-note').textContent = 'Published cover shown above. Cover edition may differ from your digital edition. Spine artwork is reconstructed from the real cover, with readable labels on hover or keyboard focus; thickness is estimated' + (book.pages ? ' from a ' + book.pages + '-page print edition.' : ' using a standard size because the page count is unknown.');
-    $('edit-status').value = book.status; $('edit-format').value = book.format; $('edit-notes').value = book.notes;
+    $('detail-history').textContent = historyText(book, localMode) || 'No added date supplied.';
+    $('art-note').textContent = 'Published cover shown above. Cover edition may differ from your digital edition. Spine artwork is reconstructed from the real cover, with readable labels on hover or keyboard focus; width and height are visual estimates' + (book.pages ? ' informed by a ' + book.pages + '-page print edition.' : ' using a standard page-count baseline with stable visual variation.');
+    if (localMode) { $('edit-status').value = book.status; $('edit-format').value = book.format; $('edit-notes').value = book.notes; }
     const source = seedBooks.find(b => b.id === id)?.source;
     $('publisher-link').hidden = !source; if (source) $('publisher-link').href = source;
     $('book-dialog').showModal();
@@ -47,7 +53,7 @@
     const allDisplayBooks = shelfBooks(books);
     const displayBooks = allDisplayBooks;
     $('book-count').textContent = `${allDisplayBooks.length} books`;
-    $('shelf-heading').textContent = activeYear === 'all' ? 'The collection' : activeYear === 'unknown' ? 'Purchase date unknown' : 'Added in ' + activeYear;
+    $('shelf-heading').textContent = activeYear === 'all' ? 'The collection' : activeYear === 'unknown' ? 'Added date unknown' : 'Added in ' + activeYear;
     $('spines').replaceChildren(); $('year-nav').replaceChildren();
     const groups = new Map();
     for (const b of [...displayBooks].sort((a, b) => (a.addedAt || '9999').localeCompare(b.addedAt || '9999'))) {
@@ -63,7 +69,7 @@
       for (const b of groupBooks) {
         const spine = element('button', b.spineAtlas ? 'spine' : 'spine imported');
         const dims = shelfDimensions(b);
-        spine.type = 'button'; spine.setAttribute('aria-label', `${b.title} by ${b.authors}, ${labels[b.status]}`);
+        spine.type = 'button'; spine.setAttribute('aria-label', `${b.title} by ${b.authors}${localMode ? ', ' + labels[b.status] : ''}`);
         spine.title = `${b.title} — click for cover and details`;
         spine.style.width = dims.width + 'px'; spine.style.height = dims.height + 'px';
         const texture = element('span', 'spine-art');
@@ -102,6 +108,7 @@
       $('year-nav').append(nav);
     }
     requestAnimationFrame(() => selectYear(activeYear, true));
+    if (!localMode) return;
     const visible = filterBooks(displayBooks, $('search').value, $('filter').value);
     $('journal').replaceChildren();
     if (!visible.length) $('journal').append(element('p', 'empty', 'No books here yet. Try another search or filter.'));
@@ -122,7 +129,7 @@
     $('spines').classList.toggle('has-selection', year !== 'all');
     for (const group of groups) group.classList.toggle('is-selected', group.dataset.year === year);
     for (const button of $('year-nav').children) button.setAttribute('aria-pressed', String(button.dataset.year === year));
-    $('shelf-heading').textContent = year === 'all' ? 'The collection' : year === 'unknown' ? 'Purchase date unknown' : 'Added in ' + year;
+    $('shelf-heading').textContent = year === 'all' ? 'The collection' : year === 'unknown' ? 'Added date unknown' : 'Added in ' + year;
     const target = groups.find(group => group.dataset.year === year);
     const viewport = scroller.getBoundingClientRect();
     const first = groups[0]?.getBoundingClientRect(), last = groups.at(-1)?.getBoundingClientRect();
@@ -148,6 +155,7 @@
   window.addEventListener('resize', () => selectYear(activeYear, true));
   $('close-dialog').addEventListener('click', () => $('book-dialog').close());
   $('book-dialog').addEventListener('click', e => { if (e.target === $('book-dialog')) { const r = e.target.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) e.target.close(); } });
+  if (localMode) {
   $('book-form').addEventListener('submit', e => {
     e.preventDefault(); const next = updateBook(books, activeId, { status: $('edit-status').value, format: $('edit-format').value, notes: $('edit-notes').value });
     try { localStorage.setItem(key, JSON.stringify(next)); books = next; $('book-dialog').close(); render(); notify('Saved to your bookshelf.'); }
@@ -158,5 +166,6 @@
     const url = URL.createObjectURL(new Blob([JSON.stringify(books, null, 2)], { type: 'application/json' }));
     const link = element('a'); link.href = url; link.download = 'my-bookshelf.json'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); notify('Library exported.');
   });
+  }
   render();
 })();
