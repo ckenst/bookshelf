@@ -49,7 +49,7 @@ test('High Growth Handbook is a Kindle book with the supplied date and status',(
  assert.equal(book.authors,'Elad Gil');
  assert.equal(book.addedAt,'2019-12-24');
  assert.equal(book.format,'kindle');
- assert.equal(book.status,'unfinished');
+ assert.equal(book.status,'paused');
  assert.equal(book.audibleObservation,undefined);
  const prior={...book,notes:'Keep my note',status:'finished',format:'both'};
  const merged=mergeLibrary([prior]).find(b=>b.id===book.id);

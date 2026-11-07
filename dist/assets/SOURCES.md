@@ -41,4 +41,8 @@ The 37 retained Audible additions use real cover images displayed on the signed-
 
 ## High Growth Handbook
 
-The real cover image was saved from the signed-in Audible purchase history page; its original image URL is recorded in `cover-sources.json`. The user owns the Kindle edition and supplied its purchase date and Not finished status. The cover shown may differ from the Kindle edition.
+The real cover image was saved from the signed-in Audible purchase history page; its original image URL is recorded in `cover-sources.json`. The user owns the Kindle edition and supplied its purchase date and current Paused status. The cover shown may differ from the Kindle edition.
+
+## Kindle library additions (November 2026)
+
+The 124 new Kindle titles use real front-cover images downloaded from Amazon by the ASIN in the reviewed Kindle inventory. Each exact image URL is recorded in `cover-sources.json` and the corresponding book record. Cover images were visually checked as published book art. Their narrow shelf textures are crops of these covers, not verified scans of physical spines. Added dates come from Kindle acquisition history; blank review statuses are Unread.

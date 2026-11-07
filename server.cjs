@@ -22,11 +22,16 @@ allowed['/assets/dust-cover.jpg'] = ['assets/dust-cover.jpg', 'image/jpeg'];
 allowed['/assets/library-spines-four.png'] = ['assets/library-spines-four.png', 'image/png'];
 for (const name of ["tiny-experiments-cover.jpg", "digital-minimalism-cover.jpg", "radical-candor-fully-revised-updated-edition-cover.jpg", "what-the-heck-is-eos-cover.jpg", "how-to-talk-so-little-kids-will-listen-cover.jpg", "the-worlds-i-see-cover.jpg", "dune-messiah-cover.jpg", "tiny-humans-big-emotions-cover.jpg", "million-dollar-weekend-cover.jpg", "thinking-in-systems-cover.jpg", "charlie-munger-cover.jpg", "friends-lovers-and-the-big-terrible-thing-cover.jpg", "mastery-cover.jpg", "outlive-cover.jpg", "the-revolt-of-the-public-and-the-crisis-of-authority-in-the-new-millennium-cover.jpg", "dollars-and-sense-cover.jpg", "capitalism-in-america-cover.jpg", "deep-work-cover.jpg", "me-cover.jpg", "cribsheet-cover.jpg", "greenlights-cover.jpg", "economics-in-one-lesson-cover.jpg", "love-pamela-cover.jpg", "alexander-hamilton-cover.jpg", "how-the-post-office-created-america-cover.jpg", "noise-cover.jpg", "food-rules-cover.jpg", "an-elegant-puzzle-systems-of-engineering-management-cover.jpg", "it-s-about-damn-time-cover.jpg", "the-age-of-surveillance-capitalism-cover.jpg", "caffeine-cover.jpg", "the-tales-of-beedle-the-bard-cover.jpg", "the-science-of-sci-fi-cover.jpg", "the-profiteers-cover.jpg", "range-cover.jpg", "good-strategy-bad-strategy-cover.jpg", "the-phoenix-project-cover.jpg"]) allowed['/assets/' + name] = ['assets/' + name, 'image/jpeg'];
 allowed['/assets/high-growth-handbook-cover.jpg'] = ['assets/high-growth-handbook-cover.jpg', 'image/jpeg'];
+const { seedBooks, shelfBooks } = require('./dist/model.js');
+for (const book of shelfBooks(seedBooks)) allowed['/' + book.cover] = [book.cover, 'image/jpeg'];
 const server = http.createServer((req, res) => {
   const file = allowed[req.url.split('?')[0]];
   if (!file || !['GET', 'HEAD'].includes(req.method)) { res.writeHead(404); res.end('Not found'); return; }
   res.writeHead(200, { 'Content-Type': file[1], 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'" });
   if (req.method === 'HEAD') res.end(); else fs.createReadStream(path.join(root, file[0])).pipe(res);
 });
-server.listen(4173, '127.0.0.1', () => console.log('Bookshelf: http://127.0.0.1:4173'));
-server.on('error', err => { console.error(err.code === 'EADDRINUSE' ? 'Port 4173 is already in use.' : err.message); process.exitCode = 1; });
+if (require.main === module) {
+  server.listen(4173, '127.0.0.1', () => console.log('Bookshelf: http://127.0.0.1:4173'));
+  server.on('error', err => { console.error(err.code === 'EADDRINUSE' ? 'Port 4173 is already in use.' : err.message); process.exitCode = 1; });
+}
+module.exports = { server };

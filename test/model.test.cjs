@@ -1,11 +1,32 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary } = require('../dist/model.js');
-test('all fifty-one distinct books are retained and Vibe Coding is deduplicated', () => {
- assert.equal(seedBooks.length, 51);
+test('all 175 distinct books are retained and Vibe Coding is deduplicated', () => {
+ assert.equal(seedBooks.length, 175);
  assert.equal(seedBooks.filter(b => b.id === 'vibe-coding').length, 1);
  assert.equal(seedBooks.find(b => b.id === 'protocols').status, 'reading');
 });
+test('all retained Kindle review entries display with real local covers', () => {
+ const { shelfBooks } = require('../dist/model.js');
+ const fs = require('node:fs');
+ const path = require('node:path');
+ const sources = require('../dist/assets/cover-sources.json');
+ assert.equal(seedBooks.length, 175);
+ assert.equal(shelfBooks(seedBooks).length, 175);
+ for (const book of seedBooks.filter(book => book.id.startsWith('kindle-'))) {
+  assert.equal(book.format, 'kindle');
+  assert.ok(book.coverSource?.startsWith('https://'), book.id);
+  assert.equal(sources[book.id], book.coverSource, book.id);
+  assert.ok(fs.existsSync(path.join(__dirname, '..', 'dist', book.cover)), book.id);
+ }
+ const signals = seedBooks.find(book => book.id === 'kindle-b0gwrwg64j');
+ assert.equal(signals.title, 'Signals & Levers: Systems Thinking Tools to Unblock Software Delivery');
+ assert.equal(signals.status, 'unread');
+ assert.equal(signals.addedAt, '2026-09-21');
+ assert.equal(seedBooks.find(book => book.id === 'kindle-b0c1fnv4dq').status, 'finished');
+ assert.equal(seedBooks.find(book => book.id === 'kindle-b0016p2fg0'), undefined);
+});
+
 test('purchase dates and listening observations remain separate', () => {
  const vibe = seedBooks.find(b => b.id === 'vibe-coding');
  assert.equal(vibe.addedAt, '2026-06-25');
@@ -24,7 +45,7 @@ test('new history appears for existing browser libraries without losing edits', 
  const old = [{ ...seedBooks[0], notes: 'Keep this note', status: 'finished', format: 'both' }, seedBooks[1]];
  delete old[0].addedAt; delete old[0].listeningEvents;
  const merged = mergeLibrary(old);
- assert.equal(merged.length, 51);
+ assert.equal(merged.length, 175);
  assert.equal(merged[0].notes, 'Keep this note');
  assert.equal(merged[0].status, 'finished');
  assert.equal(merged[0].format, 'both');
@@ -35,8 +56,8 @@ test('new history appears for existing browser libraries without losing edits', 
 test('search and status filters distinguish active, unread and finished', () => {
  assert.equal(filterBooks(seedBooks, 'YEGGE', 'reading').length, 1);
  assert.equal(filterBooks(seedBooks, '', 'reading').length, 3);
- assert.equal(filterBooks(seedBooks, '', 'unfinished').length, 2);
- assert.equal(filterBooks(seedBooks, '', 'unread').length, 17);
+ assert.equal(filterBooks(seedBooks, '', 'unfinished').length, 7);
+ assert.equal(filterBooks(seedBooks, '', 'unread').length, 99);
  assert.equal(filterBooks(seedBooks, '', 'finished')[0].id, 'the-goal');
 });
 test('edits preserve identity and history while rejecting invalid fields', () => {
@@ -62,6 +83,23 @@ test('explicit status corrections migrate old browser records once and preserve 
  const edited = updateBook(merged, 'engineering-management', {status:'finished'});
  assert.equal(mergeLibrary(edited).find(b => b.id === 'engineering-management').status, 'finished');
 });
+test('Kindle review status corrections replace older defaults and retain notes', () => {
+ const expected = {
+  'radical-candor-fully-revised-updated-edition': 'unread',
+  'charlie-munger': 'unfinished',
+  'me': 'finished',
+  'high-growth-handbook': 'paused'
+ };
+ const stale = seedBooks.map(book => ({ ...book, notes: 'My local note', statusRevision: 1 }));
+ const merged = mergeLibrary(stale);
+ for (const [id, status] of Object.entries(expected)) {
+  const book = seedBooks.find(book => book.id === id);
+  assert.equal(book.status, status, id);
+  assert.equal(merged.find(book => book.id === id).status, status, id);
+ }
+ assert.ok(merged.every(book => book.notes === 'My local note'));
+});
+
 test('all author names use consistent published full names', () => {
  const expected = {'vibe-coding':'Gene Kim & Steve Yegge', protocols:'Andrew D. Huberman', kissinger:'Walter Isaacson', titan:'Ron Chernow', 'the-nvidia-way':'Tae Kim', breakneck:'Dan Wang', 'the-comfort-crisis':'Michael Easter', 'engineering-management':'Sarah Drasner', 'the-goal':'Eliyahu M. Goldratt & Jeff Cox', 'elon-musk':'Walter Isaacson', dust:'Hugh Howey', shift:'Hugh Howey', wool:'Hugh Howey'};
  for (const [id, authors] of Object.entries(expected)) assert.equal(seedBooks.find(b => b.id === id).authors, authors);
@@ -109,9 +147,9 @@ test('sample-only titles are excluded and every reviewed book has its chosen sta
   'me':'finished', 'the-revolt-of-the-public-and-the-crisis-of-authority-in-the-new-millennium':'paused',
   'friends-lovers-and-the-big-terrible-thing':'finished', 'thinking-in-systems':'paused',
   'million-dollar-weekend':'finished', 'dune-messiah':'finished', 'what-the-heck-is-eos':'finished',
-  'radical-candor-fully-revised-updated-edition':'paused', 'tiny-experiments':'paused'
+  'radical-candor-fully-revised-updated-edition':'unread', 'tiny-experiments':'paused'
  };
- assert.equal(seedBooks.length,51);
+ assert.equal(seedBooks.length,175);
  for (const [id,status] of Object.entries(review)) assert.equal(seedBooks.find(b=>b.id===id)?.status,status,id);
  for (const id of ['it-s-not-luck','dreamland','invent-and-wander']) {
   assert.equal(seedBooks.find(b=>b.id===id),undefined);

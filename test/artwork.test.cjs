@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { seedBooks, shelfBooks, shelfDimensions, isLocalLibrary } = require('../dist/model.js');
 test('every displayed book has a real cover file and a source', () => {
-  assert.equal(shelfBooks(seedBooks).length, 51);
+  assert.equal(shelfBooks(seedBooks).length, 175);
   for (const b of shelfBooks(seedBooks)) {
     assert.ok(b.coverSource.startsWith('https://'));
     assert.ok(fs.existsSync(path.join(__dirname, '../dist', b.cover)));
@@ -37,4 +37,20 @@ test('only local addresses enable private journal and edits', () => {
   assert.equal(isLocalLibrary({protocol:'https:',hostname:'ckenst.org'}),false);
   assert.equal(isLocalLibrary({protocol:'https:',hostname:'bookshelf.kenst.com'}),false);
   assert.equal(isLocalLibrary({protocol:'https:',hostname:'ckenst.github.io'}),false);
+});
+
+test('local server serves every catalog cover', async () => {
+  const { server } = require('../server.cjs');
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const base = `http://127.0.0.1:${server.address().port}`;
+    for (const book of shelfBooks(seedBooks)) {
+      const response = await fetch(`${base}/${book.cover}`, { method: 'HEAD' });
+      assert.equal(response.status, 200, book.id);
+      assert.equal(response.headers.get('content-type'), 'image/jpeg', book.id);
+    }
+    assert.equal((await fetch(`${base}/assets/unknown-cover.jpg`)).status, 404);
+  } finally {
+    await new Promise(resolve => server.close(resolve));
+  }
 });
