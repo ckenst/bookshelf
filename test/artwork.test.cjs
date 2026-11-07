@@ -46,12 +46,14 @@ test('decade shelves use compact edge gutters so books fill the viewport', () =>
   assert.match(css, /\.spines\{padding-left:32px;padding-right:32px/);
 });
 
-test('book details show public notes and status with an editable HTTPS source field', () => {
+test('book details show public notes, hide published status and keep local editing controls', () => {
   const html = fs.readFileSync(path.join(__dirname, '../dist/index.html'), 'utf8');
   const app = fs.readFileSync(path.join(__dirname, '../dist/app.js'), 'utf8');
+  const css = fs.readFileSync(path.join(__dirname, '../dist/style.css'), 'utf8');
   assert.match(html, /id="detail-status"/);
   assert.match(html, /id="detail-notes"/);
   assert.match(html, /id="edit-source" type="url"/);
+  assert.match(css, /html:not\(\.local-library\)[^{]*\.detail-status-line[^{]*\{display:none\}/);
   assert.doesNotMatch(html, /id="art-note"|Published cover shown above|visual estimates/);
   assert.match(app, /library-edits\.json/);
 });

@@ -30,7 +30,7 @@ dialog{border:1px solid #d6d8ca;border-radius:6px;background:var(--paper);color:
 
 
 /* Private journal and editing controls are shown only by the local preview. */
-html:not(.local-library) .journal-disclosure,html:not(.local-library) .edit-details,html:not(.local-library) .save-button{display:none}
+html:not(.local-library) .journal-disclosure,html:not(.local-library) .edit-details,html:not(.local-library) .save-button,html:not(.local-library) .detail-status-line{display:none}
 
 /* The title tooltip sits outside the scrolling row so it never covers a spine. */
 .shelf-room{position:relative}
