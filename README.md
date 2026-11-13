@@ -1,6 +1,6 @@
 # My bookshelf
 
-A personal, visual bookshelf of 175 books from Kindle and Audible. Narrow spines are grouped by added year across two stacked decade shelves, with the 2020s above the 2010s; selecting a book reveals its real published cover and added date. The local preview also has reading statuses, known completion dates, and editing controls. Completion dates appear only when explicitly supplied.
+A personal, visual bookshelf of 176 books from Kindle and Audible. Narrow spines are grouped by added year across two stacked decade shelves, with the 2020s above the 2010s; selecting a book reveals its real published cover and added date. The local preview also has reading statuses, known completion dates, and editing controls. Completion dates appear only when explicitly supplied.
 
 ## Inspiration
 

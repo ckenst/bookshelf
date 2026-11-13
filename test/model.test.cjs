@@ -1,8 +1,8 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { seedBooks, filterBooks, updateBook, parseLibrary, mergeLibrary, mergeBrowserEdits, extractLibraryEdits, parseLibraryEdits, applyLibraryEdits, groupBooksByDecade, latestShelfScrollTarget } = require('../dist/model.js');
-test('all 175 distinct books are retained and Vibe Coding is deduplicated', () => {
- assert.equal(seedBooks.length, 175);
+test('all 176 distinct books are retained and Vibe Coding is deduplicated', () => {
+ assert.equal(seedBooks.length, 176);
  assert.equal(seedBooks.filter(b => b.id === 'vibe-coding').length, 1);
  assert.equal(seedBooks.find(b => b.id === 'protocols').status, 'reading');
 });
@@ -27,8 +27,8 @@ test('all retained Kindle review entries display with real local covers', () => 
  const fs = require('node:fs');
  const path = require('node:path');
  const sources = require('../dist/assets/cover-sources.json');
- assert.equal(seedBooks.length, 175);
- assert.equal(shelfBooks(seedBooks).length, 175);
+ assert.equal(seedBooks.length, 176);
+ assert.equal(shelfBooks(seedBooks).length, 176);
  for (const book of seedBooks.filter(book => book.id.startsWith('kindle-'))) {
   assert.equal(book.format, 'kindle');
   assert.ok(book.coverSource?.startsWith('https://'), book.id);
@@ -61,7 +61,7 @@ test('new history appears for existing browser libraries without losing edits', 
  const old = [{ ...seedBooks[0], notes: 'Keep this note', status: 'finished', format: 'both' }, seedBooks[1]];
  delete old[0].addedAt; delete old[0].listeningEvents;
  const merged = mergeLibrary(old);
- assert.equal(merged.length, 175);
+ assert.equal(merged.length, 176);
  assert.equal(merged[0].notes, 'Keep this note');
  assert.equal(merged[0].status, 'finished');
  assert.equal(merged[0].format, 'both');
@@ -84,7 +84,7 @@ test('search and status filters distinguish active, unread and finished', () => 
  assert.equal(filterBooks(seedBooks, 'YEGGE', 'reading').length, 1);
  assert.equal(filterBooks(seedBooks, '', 'reading').length, 3);
  assert.equal(filterBooks(seedBooks, '', 'unfinished').length, 7);
- assert.equal(filterBooks(seedBooks, '', 'unread').length, 99);
+ assert.equal(filterBooks(seedBooks, '', 'unread').length, 100);
  assert.equal(filterBooks(seedBooks, '', 'finished')[0].id, 'the-goal');
 });
 test('edits preserve identity and history while rejecting invalid fields', () => {
@@ -159,6 +159,15 @@ test('year navigation centers a group and clamps scrolling at the shelf edges', 
 
 test('new purchases and explicit completion dates are retained separately', () => {
  const get = id => seedBooks.find(b => b.id === id);
+ const pleasure = get('the-pleasure-of-finding-things-out');
+ assert.equal(pleasure.title, 'The Pleasure of Finding Things Out: The Best Short Works of Richard P. Feynman');
+ assert.equal(pleasure.authors, 'Richard P. Feynman');
+ assert.equal(pleasure.addedAt, '2026-11-11');
+ assert.equal(pleasure.format, 'both');
+ assert.equal(pleasure.status, 'unread');
+ assert.equal(pleasure.pages, 288);
+ assert.equal(pleasure.audibleSource, 'https://www.audible.com/pd/The-Pleasure-of-Finding-Things-Out-Audiobook/B00BSU83HI');
+ assert.equal(seedBooks.filter(b => b.title.startsWith('The Pleasure of Finding Things Out')).length, 1);
  assert.equal(get('protocols').addedAt, '2026-10');
  assert.equal(get('engineering-management').addedAt, '2025-10-25');
  for (const [id,purchase,finish] of [['elon-musk','2025-08-22','2025-12-12'],['dust','2025-07-21','2025-08-01'],['shift','2025-06-04','2025-06-18'],['wool','2025-01-24','2025-02-19']]) {
@@ -189,7 +198,7 @@ test('sample-only titles are excluded and every reviewed book has its chosen sta
   'million-dollar-weekend':'finished', 'dune-messiah':'finished', 'what-the-heck-is-eos':'finished',
   'radical-candor-fully-revised-updated-edition':'unread', 'tiny-experiments':'paused'
  };
- assert.equal(seedBooks.length,175);
+ assert.equal(seedBooks.length,176);
  for (const [id,status] of Object.entries(review)) assert.equal(seedBooks.find(b=>b.id===id)?.status,status,id);
  for (const id of ['it-s-not-luck','dreamland','invent-and-wander']) {
   assert.equal(seedBooks.find(b=>b.id===id),undefined);

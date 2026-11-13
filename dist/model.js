@@ -946,6 +946,21 @@
   for (const book of seedBooks) Object.assign(book, audibleHistory[book.id]);
   seedBooks.push(...[
   {
+    "id": "the-pleasure-of-finding-things-out",
+    "title": "The Pleasure of Finding Things Out: The Best Short Works of Richard P. Feynman",
+    "authors": "Richard P. Feynman",
+    "addedAt": "2026-11-11",
+    "status": "unread",
+    "statusRevision": 1,
+    "format": "both",
+    "notes": "",
+    "pages": 288,
+    "cover": "assets/the-pleasure-of-finding-things-out-cover.jpg",
+    "coverSource": "https://images-na.ssl-images-amazon.com/images/P/B005QBLHB4.01.L.jpg",
+    "source": "https://www.hachettebookgroup.com/titles/richard-p-feynman/the-pleasure-of-finding-things-out/9780465023950/?lens=basic-books",
+    "audibleSource": "https://www.audible.com/pd/The-Pleasure-of-Finding-Things-Out-Audiobook/B00BSU83HI"
+  },
+  {
     "id": "kindle-b0gwrwg64j",
     "title": "Signals & Levers: Systems Thinking Tools to Unblock Software Delivery",
     "authors": "Elisabeth Hendrickson, Joel Tosi",

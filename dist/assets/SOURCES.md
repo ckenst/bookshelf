@@ -46,3 +46,7 @@ The real cover image was saved from the signed-in Audible purchase history page;
 ## Kindle library additions (November 2026)
 
 The 124 new Kindle titles use real front-cover images downloaded from Amazon by the ASIN in the reviewed Kindle inventory. Each exact image URL is recorded in `cover-sources.json` and the corresponding book record. Cover images were visually checked as published book art. Their narrow shelf textures are crops of these covers, not verified scans of physical spines. Added dates come from Kindle acquisition history; blank review statuses are Unread.
+
+## November 11, 2026 purchases
+
+The Pleasure of Finding Things Out was purchased in both Kindle and Audible formats. Its real Kindle front cover was downloaded from Amazon using ASIN B005QBLHB4; the exact URL is recorded in `cover-sources.json`. The official Basic Books page supplies the 288-page reference estimate, and the Audible listing uses ASIN B00BSU83HI. Signals & Levers already existed in the catalog; its tracked format edit records the additional Audible ownership without creating a duplicate title.

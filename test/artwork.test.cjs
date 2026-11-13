@@ -5,7 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { seedBooks, shelfBooks, shelfDimensions, isLocalLibrary, mergeLibrary, updateBook } = require('../dist/model.js');
 test('every displayed book has a real cover file and a source', () => {
-  assert.equal(shelfBooks(seedBooks).length, 175);
+  assert.equal(shelfBooks(seedBooks).length, 176);
   for (const b of shelfBooks(seedBooks)) {
     assert.ok(b.coverSource.startsWith('https://'));
     assert.ok(fs.existsSync(path.join(__dirname, '../dist', b.cover)));
